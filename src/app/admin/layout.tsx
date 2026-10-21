@@ -71,7 +71,8 @@ export default function AdminLayout({
   // Derive title from current route
   let pageTitle = "Dashboard";
   if (pathname.includes("/admin/players")) pageTitle = "Registered Players";
-  else if (pathname.includes("/admin/tournament")) pageTitle = "Tournament Details";
+  else if (pathname.includes("/admin/tournament")) pageTitle = "Tournament Settings";
+  else if (pathname.includes("/admin/backup")) pageTitle = "Backup & Recovery";
   else if (pathname.includes("/admin/posters")) pageTitle = "Auction Posters";
   else if (pathname.includes("/admin/settings")) pageTitle = "Settings";
 

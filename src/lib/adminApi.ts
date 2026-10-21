@@ -6,15 +6,30 @@ const API_BASE_URL =
 export interface AdminUser {
   id: string;
   email: string;
+  username?: string;
   full_name: string;
   is_active: boolean;
   created_at?: string;
   last_login?: string;
 }
 
+export interface LatestRegistration {
+  id: string;
+  serial_number: number;
+  formatted_serial: string;
+  player_name: string;
+  village: string;
+  playing_role: string;
+  phone_number: string;
+  photo_url: string;
+  created_at?: string;
+}
+
 export interface DashboardStats {
   total_registered_players: number;
   today_registrations: number;
+  total_villages_represented: number;
+  latest_registrations: LatestRegistration[];
   players_by_role: Record<string, number>;
   posters_generated: number;
   posters_pending: number;
@@ -56,19 +71,52 @@ export interface TournamentDetails {
   updated_at?: string;
 }
 
+export interface BackupStatus {
+  database_name: string;
+  backup_directory: string;
+  total_backups: number;
+  last_backup_time?: string | null;
+  players_count: number;
+  settings_count: number;
+  counters_count: number;
+  system_status: string;
+}
+
+export interface BackupItem {
+  filename: str;
+  created_at: string;
+  size_bytes: number;
+  size_formatted: string;
+  player_count: number;
+  checksum: string;
+}
+
+export interface RestoreResult {
+  success: boolean;
+  filename: string;
+  players_restored: number;
+  message: string;
+}
+
+type str = string;
+
 export function getAdminToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("sportbid_admin_token");
+  return (
+    localStorage.getItem("vfn_admin_token") ||
+    localStorage.getItem("sportbid_admin_token")
+  );
 }
 
 export function setAdminToken(token: string) {
   if (typeof window !== "undefined") {
-    localStorage.setItem("sportbid_admin_token", token);
+    localStorage.setItem("vfn_admin_token", token);
   }
 }
 
 export function removeAdminToken() {
   if (typeof window !== "undefined") {
+    localStorage.removeItem("vfn_admin_token");
     localStorage.removeItem("sportbid_admin_token");
   }
 }
@@ -117,11 +165,15 @@ export async function adminFetch<T>(
   return res.json() as Promise<T>;
 }
 
-export async function loginAdmin(email: string, password: string) {
+export async function loginAdmin(usernameOrEmail: string, password: string) {
   const res = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({
+      username: usernameOrEmail,
+      email: usernameOrEmail,
+      password,
+    }),
     credentials: "include",
   });
 
@@ -219,5 +271,31 @@ export async function updateTournamentSettings(
   return adminFetch<TournamentDetails>("/api/v1/tournament", {
     method: "PATCH",
     body: JSON.stringify(data),
+  });
+}
+
+// Backup & Recovery API
+export async function fetchBackupStatus(): Promise<BackupStatus> {
+  return adminFetch<BackupStatus>("/api/v1/backup/status");
+}
+
+export async function fetchBackupHistory(): Promise<BackupItem[]> {
+  return adminFetch<BackupItem[]>("/api/v1/backup/history");
+}
+
+export async function createDatabaseBackup(): Promise<BackupItem> {
+  return adminFetch<BackupItem>("/api/v1/backup/create", {
+    method: "POST",
+  });
+}
+
+export function getBackupDownloadUrl(filename: string): string {
+  const token = getAdminToken();
+  return `${API_BASE_URL}/api/v1/backup/download/${encodeURIComponent(filename)}${token ? `?token=${token}` : ""}`;
+}
+
+export async function restoreDatabaseBackup(filename: string): Promise<RestoreResult> {
+  return adminFetch<RestoreResult>(`/api/v1/backup/restore/${encodeURIComponent(filename)}`, {
+    method: "POST",
   });
 }

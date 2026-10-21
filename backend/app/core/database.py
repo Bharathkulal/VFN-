@@ -3,7 +3,7 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo import ASCENDING, DESCENDING, IndexModel
 from backend.app.core.config import settings
 
-logger = logging.getLogger("sportbid.database")
+logger = logging.getLogger("vfn.database")
 
 
 class Database:

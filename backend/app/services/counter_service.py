@@ -2,7 +2,7 @@ import logging
 from pymongo import ReturnDocument
 from backend.app.core.database import get_counters_collection
 
-logger = logging.getLogger("sportbid.counter")
+logger = logging.getLogger("vfn.counter")
 
 
 async def get_next_serial_number(counter_id: str = "player_serial") -> int:

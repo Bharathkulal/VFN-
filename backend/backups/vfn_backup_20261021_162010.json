@@ -1,0 +1,81 @@
+{
+  "tournament": "Volleyball Friends Nalthur Trophy 2026",
+  "exported_at": "2026-10-21T16:20:10.772704+00:00",
+  "exported_by": "admin@vfn.com",
+  "players": [
+    {
+      "_id": "6ad8e63a84a2ea791552fe1d",
+      "serial_number": 1,
+      "player_name": "Rohan Shetty",
+      "village": "Nalthur Central",
+      "playing_role": "Middle Blocker",
+      "phone_number": "9876543210",
+      "photo_url": "/uploads/players/player_026a158e377a.png",
+      "photo_public_id": "local_player_026a158e377a",
+      "poster_status": "pending",
+      "poster_url": null,
+      "created_at": "2026-10-21T16:20:10.416000",
+      "updated_at": "2026-10-21T16:20:10.587000"
+    },
+    {
+      "_id": "6ad8e63a84a2ea791552fe1e",
+      "serial_number": 2,
+      "player_name": "Player Number 2",
+      "village": "Nalthur",
+      "playing_role": "Setter",
+      "phone_number": "9876543212",
+      "photo_url": "/uploads/players/player_ac815dae6245.png",
+      "photo_public_id": "local_player_ac815dae6245",
+      "poster_status": "pending",
+      "poster_url": null,
+      "created_at": "2026-10-21T16:20:10.437000",
+      "updated_at": "2026-10-21T16:20:10.437000"
+    },
+    {
+      "_id": "6ad8e63a84a2ea791552fe1f",
+      "serial_number": 3,
+      "player_name": "Player Number 3",
+      "village": "Nalthur",
+      "playing_role": "Setter",
+      "phone_number": "9876543213",
+      "photo_url": "/uploads/players/player_20d2aabca072.png",
+      "photo_public_id": "local_player_20d2aabca072",
+      "poster_status": "pending",
+      "poster_url": null,
+      "created_at": "2026-10-21T16:20:10.444000",
+      "updated_at": "2026-10-21T16:20:10.444000"
+    },
+    {
+      "_id": "6ad8e63a84a2ea791552fe20",
+      "serial_number": 4,
+      "player_name": "Player Number 4",
+      "village": "Nalthur",
+      "playing_role": "Setter",
+      "phone_number": "9876543214",
+      "photo_url": "/uploads/players/player_fc57cb7c43c6.png",
+      "photo_public_id": "local_player_fc57cb7c43c6",
+      "poster_status": "pending",
+      "poster_url": null,
+      "created_at": "2026-10-21T16:20:10.452000",
+      "updated_at": "2026-10-21T16:20:10.452000"
+    }
+  ],
+  "tournament_settings": [
+    {
+      "_id": "tournament_info",
+      "tournament_name": "Volleyball Friends Nalthur Trophy 2026",
+      "organizer": "Volleyball Friends Nalthur",
+      "category": "Volleyball",
+      "year": 2026,
+      "ground": "Nalthur High School Ground",
+      "updated_at": "2026-10-21T16:20:10.648000"
+    }
+  ],
+  "counters": [
+    {
+      "_id": "player_serial",
+      "seq": 5
+    }
+  ],
+  "checksum": "ffa6c41002a9ec84248be2090853159b31d2b0cea6e4ed6c29948c88f462bb15"
+}

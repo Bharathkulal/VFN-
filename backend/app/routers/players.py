@@ -22,7 +22,7 @@ from backend.app.models.player import (
     PlayingRoleEnum,
 )
 
-logger = logging.getLogger("sportbid.players")
+logger = logging.getLogger("vfn.players")
 router = APIRouter(prefix="/players", tags=["Players"])
 
 

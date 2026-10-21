@@ -1,13 +1,11 @@
 import os
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
 from backend.app.core.config import settings
 from backend.app.core.database import (
@@ -20,19 +18,20 @@ from backend.app.routers.auth import router as auth_router, limiter
 from backend.app.routers.players import router as players_router
 from backend.app.routers.dashboard import router as dashboard_router
 from backend.app.routers.tournament import router as tournament_router
+from backend.app.routers.backup import router as backup_router
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
-logger = logging.getLogger("sportbid.main")
+logger = logging.getLogger("vfn.main")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager for startup and shutdown events."""
-    logger.info("Initializing SportBid backend application...")
+    logger.info("Initializing VFN Tournament backend application...")
 
     # Ensure uploads directories exist
     os.makedirs(os.path.join(settings.UPLOAD_DIR, "players"), exist_ok=True)
@@ -44,11 +43,12 @@ async def lifespan(app: FastAPI):
     try:
         admins_col = get_admins_collection()
         admin_count = await admins_col.count_documents({})
-        if admin_count == 0 and settings.ADMIN_EMAIL and settings.ADMIN_PASSWORD:
+        if admin_count == 0 and settings.ADMIN_EMAIL:
             from datetime import datetime, timezone
             now = datetime.now(timezone.utc)
-            hashed = hash_password(settings.ADMIN_PASSWORD)
+            hashed = hash_password(settings.ADMIN_PASSWORD or "admin")
             await admins_col.insert_one({
+                "username": "admin",
                 "email": settings.ADMIN_EMAIL.strip().lower(),
                 "hashed_password": hashed,
                 "full_name": settings.ADMIN_FULL_NAME,
@@ -60,19 +60,19 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Could not check or bootstrap default admin: {e}")
 
-    logger.info("SportBid backend started successfully.")
+    logger.info("VFN backend started successfully.")
     yield
 
     # Teardown
     await close_mongo_connection()
-    logger.info("SportBid backend shutdown complete.")
+    logger.info("VFN backend shutdown complete.")
 
 
 # Create FastAPI application
 app = FastAPI(
-    title=settings.PROJECT_NAME,
+    title="VFN Tournament API",
     version=settings.VERSION,
-    description="Backend API for SportBid - Volleyball Friends Nalthur Trophy 2026 player registration and auction management.",
+    description="Backend API for Volleyball Friends Nalthur Trophy 2026 player registration and administration.",
     lifespan=lifespan,
 )
 
@@ -104,6 +104,7 @@ app.include_router(auth_router, prefix=api_prefix)
 app.include_router(players_router, prefix=api_prefix)
 app.include_router(dashboard_router, prefix=api_prefix)
 app.include_router(tournament_router, prefix=api_prefix)
+app.include_router(backup_router, prefix=api_prefix)
 
 
 @app.get("/", tags=["Health"])
@@ -112,7 +113,7 @@ async def health_check():
     """Health check endpoint indicating API operational status."""
     return {
         "status": "healthy",
-        "service": "SportBid API",
+        "service": "VFN Tournament API",
         "tournament": "Volleyball Friends Nalthur Trophy 2026",
         "version": settings.VERSION,
         "database": "MongoDB Connected",

@@ -8,7 +8,7 @@ from backend.app.models.tournament import (
     TournamentSettingsUpdate,
 )
 
-logger = logging.getLogger("sportbid.tournament")
+logger = logging.getLogger("vfn.tournament")
 router = APIRouter(prefix="/tournament", tags=["Tournament"])
 
 

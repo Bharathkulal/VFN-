@@ -291,3 +291,46 @@ def test_tournament_settings_get_and_update(client: TestClient, admin_token: str
     )
     assert patch_res.status_code == 200
     assert patch_res.json()["ground"] == "Nalthur High School Ground"
+
+
+# -------------------------------------------------------------
+# 7. Dev Credentials & Backup System Tests
+# -------------------------------------------------------------
+def test_admin_login_with_username_admin(client: TestClient):
+    res = client.post(
+        "/api/v1/auth/login",
+        json={"username": "admin", "password": "admin"},
+    )
+    assert res.status_code == 200
+    assert "access_token" in res.json()
+
+
+def test_backup_create_status_history_restore(client: TestClient, admin_token: str):
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    # 1. Check status
+    status_res = client.get("/api/v1/backup/status", headers=headers)
+    assert status_res.status_code == 200
+    assert status_res.json()["system_status"] == "Operational (MongoDB Connected)"
+
+    # 2. Create backup
+    create_res = client.post("/api/v1/backup/create", headers=headers)
+    assert create_res.status_code == 200
+    backup_file = create_res.json()["filename"]
+    assert backup_file.startswith("vfn_backup_")
+
+    # 3. Check history
+    hist_res = client.get("/api/v1/backup/history", headers=headers)
+    assert hist_res.status_code == 200
+    filenames = [item["filename"] for item in hist_res.json()]
+    assert backup_file in filenames
+
+    # 4. Download backup
+    dl_res = client.get(f"/api/v1/backup/download/{backup_file}", headers=headers)
+    assert dl_res.status_code == 200
+    assert "players" in dl_res.json()
+
+    # 5. Restore backup
+    rst_res = client.post(f"/api/v1/backup/restore/{backup_file}", headers=headers)
+    assert rst_res.status_code == 200
+    assert rst_res.json()["success"] is True

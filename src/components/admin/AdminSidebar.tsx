@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Users,
   Trophy,
+  Database,
   Image as ImageIcon,
   Settings,
   LogOut,
@@ -45,10 +46,16 @@ export function AdminSidebar({
       active: pathname.startsWith("/admin/players"),
     },
     {
-      name: "Tournament Details",
+      name: "Tournament Settings",
       href: "/admin/tournament",
       icon: Trophy,
       active: pathname.startsWith("/admin/tournament"),
+    },
+    {
+      name: "Backup & Recovery",
+      href: "/admin/backup",
+      icon: Database,
+      active: pathname.startsWith("/admin/backup"),
     },
     {
       name: "Auction Posters",
@@ -57,7 +64,7 @@ export function AdminSidebar({
       active: pathname.startsWith("/admin/posters"),
     },
     {
-      name: "Settings",
+      name: "System Settings",
       href: "/admin/settings",
       icon: Settings,
       active: pathname.startsWith("/admin/settings"),
@@ -83,10 +90,10 @@ export function AdminSidebar({
           </div>
           <div className="flex flex-col">
             <span className="text-xs font-black tracking-widest text-emerald-300 uppercase">
-              SportBid Admin
+              VFN Admin Portal
             </span>
             <span className="text-sm font-extrabold text-white leading-tight uppercase">
-              VFN Trophy 2026
+              Nalthur 2026
             </span>
           </div>
         </Link>
@@ -106,7 +113,7 @@ export function AdminSidebar({
       {/* Navigation Links */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-emerald-400/60">
-          Main Menu
+          Navigation
         </div>
         {navLinks.map((item) => {
           const Icon = item.icon;
@@ -143,10 +150,10 @@ export function AdminSidebar({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-white truncate">
-              {adminUser?.full_name || "Tournament Admin"}
+              {adminUser?.full_name || "Committee Admin"}
             </p>
             <p className="text-[11px] text-emerald-300/60 truncate font-mono">
-              {adminUser?.email || "admin@vfn.com"}
+              {adminUser?.username ? `@${adminUser.username}` : (adminUser?.email || "admin")}
             </p>
           </div>
         </div>

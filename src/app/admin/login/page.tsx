@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Lock, Mail, ArrowRight, Loader2, AlertCircle, Shield, ArrowLeft } from "lucide-react";
+import { Lock, User, ArrowRight, Loader2, AlertCircle, ArrowLeft, Eye, EyeOff, KeyRound } from "lucide-react";
 import { VolleyballIcon } from "@/components/VolleyballIcon";
 import { loginAdmin, getAdminToken } from "@/lib/adminApi";
 
@@ -12,8 +12,10 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const isExpired = searchParams.get("expired") === "true";
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  // Preconfigured dev credentials: admin / admin
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("admin");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(
     isExpired ? "Your session has expired. Please log in again." : null
@@ -30,14 +32,14 @@ function LoginForm() {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!email.trim() || !password) {
-      setErrorMessage("Please enter both email and password.");
+    if (!username.trim() || !password) {
+      setErrorMessage("Please enter both username and password.");
       return;
     }
 
     try {
       setLoading(true);
-      await loginAdmin(email.trim(), password);
+      await loginAdmin(username.trim(), password);
       router.push("/admin/dashboard");
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -48,6 +50,12 @@ function LoginForm() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFillDevCredentials = () => {
+    setUsername("admin");
+    setPassword("admin");
+    setErrorMessage(null);
   };
 
   return (
@@ -63,58 +71,87 @@ function LoginForm() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Email Field */}
+        {/* Username Field */}
         <div className="space-y-1.5">
           <label
-            htmlFor="admin-email"
+            htmlFor="admin-username"
             className="block text-xs font-bold uppercase tracking-wider text-neutral-700"
           >
-            Admin Email Address
+            Username
           </label>
           <div className="relative rounded-xl shadow-2xs">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
-              <Mail className="w-4 h-4" />
+              <User className="w-4 h-4" />
             </div>
             <input
-              id="admin-email"
-              type="email"
-              autoComplete="email"
+              id="admin-username"
+              type="text"
+              autoComplete="username"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@vfn.com"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="admin"
               className="w-full rounded-xl border border-neutral-300 bg-white pl-10 pr-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-[#0a2e1b] focus:ring-2 focus:ring-[#0a2e1b]/20 focus:outline-none transition-colors"
             />
           </div>
         </div>
 
-        {/* Password Field */}
+        {/* Password Field with Show/Hide Toggle */}
         <div className="space-y-1.5">
-          <label
-            htmlFor="admin-password"
-            className="block text-xs font-bold uppercase tracking-wider text-neutral-700"
-          >
-            Password
-          </label>
+          <div className="flex items-center justify-between">
+            <label
+              htmlFor="admin-password"
+              className="block text-xs font-bold uppercase tracking-wider text-neutral-700"
+            >
+              Password
+            </label>
+          </div>
           <div className="relative rounded-xl shadow-2xs">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
               <Lock className="w-4 h-4" />
             </div>
             <input
               id="admin-password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••••••"
-              className="w-full rounded-xl border border-neutral-300 bg-white pl-10 pr-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-[#0a2e1b] focus:ring-2 focus:ring-[#0a2e1b]/20 focus:outline-none transition-colors"
+              placeholder="admin"
+              className="w-full rounded-xl border border-neutral-300 bg-white pl-10 pr-11 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-[#0a2e1b] focus:ring-2 focus:ring-[#0a2e1b]/20 focus:outline-none transition-colors"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-400 hover:text-neutral-700 focus:outline-none cursor-pointer"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
           </div>
         </div>
 
+        {/* Preconfigured Credentials Pill */}
+        <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2 text-emerald-900">
+            <KeyRound className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Dev Credentials: <strong>admin</strong> / <strong>admin</strong></span>
+          </div>
+          <button
+            type="button"
+            onClick={handleFillDevCredentials}
+            className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 underline cursor-pointer"
+          >
+            Auto-fill
+          </button>
+        </div>
+
         {/* Submit Button */}
-        <div className="pt-2">
+        <div className="pt-1">
           <button
             type="submit"
             disabled={loading}
@@ -134,12 +171,6 @@ function LoginForm() {
           </button>
         </div>
       </form>
-
-      {/* Security Notice */}
-      <div className="pt-2 border-t border-neutral-100 flex items-center justify-center gap-1.5 text-[11px] text-neutral-400">
-        <Shield className="w-3.5 h-3.5 text-emerald-700" />
-        <span>Protected by Argon2id password hashing and rate-limiting</span>
-      </div>
     </div>
   );
 }
@@ -165,14 +196,14 @@ export default function AdminLoginPage() {
             <VolleyballIcon size={32} strokeColor="#a7f3d0" accentColor="#062113" />
           </div>
           <div>
-            <span className="text-[11px] font-black tracking-widest text-emerald-800 uppercase">
-              SportBid Admin Portal
-            </span>
             <h1 className="text-2xl font-black text-neutral-900 uppercase tracking-tight">
-              Volleyball Friends Nalthur
+              Admin Portal
             </h1>
+            <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider mt-0.5">
+              Volleyball Friends Nalthur Trophy 2026
+            </p>
             <p className="text-xs text-neutral-500 mt-1">
-              Authorized Committee Login • Season 2026
+              Authorized Committee Access • Season 2026
             </p>
           </div>
         </div>

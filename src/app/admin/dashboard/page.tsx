@@ -5,14 +5,15 @@ import Link from "next/link";
 import {
   Users,
   CalendarCheck,
-  Image as ImageIcon,
+  MapPin,
   Clock,
   ArrowRight,
   RefreshCw,
-  Trophy,
   AlertCircle,
   PlusCircle,
-  CheckCircle2,
+  Shield,
+  Database,
+  Trophy,
 } from "lucide-react";
 import { fetchDashboardStats, DashboardStats } from "@/lib/adminApi";
 import { VolleyballIcon } from "@/components/VolleyballIcon";
@@ -76,23 +77,24 @@ export default function AdminDashboardPage() {
 
   const roleEntries = Object.entries(stats.players_by_role || {});
   const isEmpty = stats.total_registered_players === 0;
+  const latestList = stats.latest_registrations || [];
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      {/* Welcome Banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-[#072416] to-[#0d3f26] text-white p-6 sm:p-8 shadow-md border border-emerald-900/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="space-y-1">
+      {/* Tournament Header Banner */}
+      <div className="rounded-3xl bg-gradient-to-r from-[#072416] via-[#0a2e1b] to-[#0e4329] text-white p-6 sm:p-8 shadow-md border border-emerald-900/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[11px] font-bold tracking-widest uppercase text-emerald-300">
-              Live Tournament Stats
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[11px] font-black tracking-widest uppercase text-emerald-300">
+              Admin Control Center
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-tight">
-            {stats.tournament_name}
+            {stats.tournament_name || "Volleyball Friends Nalthur Trophy 2026"}
           </h1>
           <p className="text-xs sm:text-sm text-emerald-100/80 max-w-xl">
-            Player roster overview, position counts, and auction poster generation queue.
+            Live tournament metrics, village representation, and player registration oversight.
           </p>
         </div>
 
@@ -103,25 +105,25 @@ export default function AdminDashboardPage() {
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition-colors cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Refresh Stats</span>
+            <span>Refresh</span>
           </button>
           <Link
             href="/admin/players"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-[#072416] text-xs font-extrabold uppercase tracking-wider transition-colors shadow-xs"
           >
-            <span>Manage Players</span>
+            <span>Registered Players</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       </div>
 
-      {/* 4 Core Metric Cards */}
+      {/* 4 Core Metrics Required by User */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        {/* Total Players */}
+        {/* Metric 1: Total Registered Players */}
         <div className="bg-white rounded-2xl border border-neutral-200/90 p-5 shadow-2xs hover:border-emerald-800/40 transition-colors">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
-              Total Players
+              Total Registered Players
             </span>
             <div className="w-9 h-9 rounded-xl bg-emerald-100/80 text-emerald-900 flex items-center justify-center">
               <Users className="w-4 h-4" />
@@ -137,11 +139,11 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Today's Registrations */}
+        {/* Metric 2: Registrations Today */}
         <div className="bg-white rounded-2xl border border-neutral-200/90 p-5 shadow-2xs hover:border-emerald-800/40 transition-colors">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
-              Registered Today
+              Registrations Today
             </span>
             <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-900 flex items-center justify-center">
               <CalendarCheck className="w-4 h-4" />
@@ -157,45 +159,117 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Posters Generated */}
+        {/* Metric 3: Total Villages Represented */}
         <div className="bg-white rounded-2xl border border-neutral-200/90 p-5 shadow-2xs hover:border-emerald-800/40 transition-colors">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
-              Posters Generated
+              Villages Represented
             </span>
-            <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-900 flex items-center justify-center">
-              <ImageIcon className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center">
+              <MapPin className="w-4 h-4" />
             </div>
           </div>
           <div className="space-y-1">
             <p className="text-3xl font-black text-neutral-900 tracking-tight">
-              {stats.posters_generated}
+              {stats.total_villages_represented}
             </p>
             <p className="text-[11px] font-medium text-neutral-500">
-              Phase 2 Auction Ready
+              Distinct villages participating
             </p>
           </div>
         </div>
 
-        {/* Posters Awaiting Generation */}
+        {/* Metric 4: Latest Registrations Count / Quick Link */}
         <div className="bg-white rounded-2xl border border-neutral-200/90 p-5 shadow-2xs hover:border-emerald-800/40 transition-colors">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
-              Posters Pending
+              Latest Registrations
             </span>
-            <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-900 flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </div>
           </div>
           <div className="space-y-1">
             <p className="text-3xl font-black text-neutral-900 tracking-tight">
-              {stats.posters_pending}
+              {latestList.length}
             </p>
             <p className="text-[11px] font-medium text-neutral-500">
-              Awaiting automatic generation
+              Recent player submissions
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Latest Registrations Feed / Table */}
+      <div className="bg-white rounded-3xl border border-neutral-200/90 p-6 sm:p-7 shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-900 text-emerald-300 flex items-center justify-center">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-base font-black text-neutral-900 uppercase tracking-tight">
+                Latest Registrations
+              </h2>
+              <p className="text-xs text-neutral-500">
+                Most recently submitted player records
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/admin/players"
+            className="inline-flex items-center gap-1 text-xs font-bold text-emerald-800 hover:text-emerald-950 transition-colors"
+          >
+            <span>View All</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {latestList.length === 0 ? (
+          <div className="py-8 text-center space-y-2">
+            <p className="text-sm font-semibold text-neutral-600">No players registered yet</p>
+            <p className="text-xs text-neutral-400">
+              When players submit the public registration form, their details will appear here immediately.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {latestList.map((player) => (
+              <div
+                key={player.id}
+                className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-neutral-200/80 bg-neutral-50/50 hover:bg-white hover:border-emerald-600/40 hover:shadow-xs transition-all"
+              >
+                {/* Thumbnail */}
+                <div className="w-12 h-12 rounded-xl overflow-hidden bg-neutral-200 flex-shrink-0 border border-neutral-300">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={player.photo_url}
+                    alt={player.player_name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                {/* Details */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-xs font-black text-neutral-900 truncate">
+                      {player.player_name}
+                    </span>
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-900 flex-shrink-0">
+                      #{player.formatted_serial}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-neutral-500 mt-0.5">
+                    <span className="truncate">{player.village}</span>
+                    <span>•</span>
+                    <span className="font-semibold text-emerald-800">{player.playing_role}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Playing Role Distribution */}
@@ -210,7 +284,7 @@ export default function AdminDashboardPage() {
                 Squad Position Breakdown
               </h2>
               <p className="text-xs text-neutral-500">
-                Live count of players by volleyball position
+                Live count of registered players by volleyball position
               </p>
             </div>
           </div>
@@ -223,7 +297,7 @@ export default function AdminDashboardPage() {
             </div>
             <p className="text-sm font-bold text-neutral-700">No players registered yet</p>
             <p className="text-xs text-neutral-500 max-w-sm mx-auto">
-              Share the registration link or register the first tournament player to populate squad statistics.
+              Share the registration link or register players to populate position breakdown statistics.
             </p>
             <Link
               href="/"
@@ -231,7 +305,7 @@ export default function AdminDashboardPage() {
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0a2e1b] text-white text-xs font-bold uppercase tracking-wider shadow-xs hover:bg-[#072416] transition-colors"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span>Register First Player</span>
+              <span>Open Registration Page</span>
             </Link>
           </div>
         ) : (
@@ -276,30 +350,30 @@ export default function AdminDashboardPage() {
         </Link>
 
         <Link
-          href="/admin/posters"
+          href="/admin/tournament"
           className="group rounded-2xl bg-white border border-neutral-200/90 p-5 shadow-2xs hover:border-emerald-800 hover:shadow-md transition-all flex items-center justify-between"
         >
           <div className="space-y-1">
             <h3 className="text-sm font-bold text-neutral-900 group-hover:text-emerald-900 transition-colors">
-              Auction Posters Queue
+              Tournament Settings
             </h3>
             <p className="text-xs text-neutral-500">
-              Track poster generation status for Phase 2 player auctions
+              Manage tournament name, ground venue, rules, and organizers
             </p>
           </div>
           <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-emerald-800 group-hover:translate-x-1 transition-all" />
         </Link>
 
         <Link
-          href="/admin/tournament"
+          href="/admin/backup"
           className="group rounded-2xl bg-white border border-neutral-200/90 p-5 shadow-2xs hover:border-emerald-800 hover:shadow-md transition-all flex items-center justify-between"
         >
           <div className="space-y-1">
             <h3 className="text-sm font-bold text-neutral-900 group-hover:text-emerald-900 transition-colors">
-              Tournament Details
+              Backup & Recovery
             </h3>
             <p className="text-xs text-neutral-500">
-              Manage tournament name, ground venue, and official rules
+              Create, download, and restore JSON snapshots of tournament data
             </p>
           </div>
           <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-emerald-800 group-hover:translate-x-1 transition-all" />

@@ -1,16 +1,18 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 
 class AdminLoginRequest(BaseModel):
-    email: EmailStr
-    password: str = Field(..., min_length=6)
+    username: Optional[str] = None
+    email: Optional[str] = None
+    password: str = Field(..., min_length=1)
 
 
 class AdminUserResponse(BaseModel):
     id: str
     email: str
+    username: Optional[str] = None
     full_name: str
     is_active: bool
     created_at: Optional[datetime] = None
