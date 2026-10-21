@@ -8,9 +8,8 @@ import {
   playerRegistrationSchema,
   PlayerRegistrationFormValues,
   PlayerRegistrationInput,
-  ValidatedPlayerDemoRecord,
 } from "@/lib/validation";
-import { handlePlayerRegistration } from "@/lib/submitHandler";
+import { handlePlayerRegistration, RegisteredPlayerData } from "@/lib/submitHandler";
 import { PhotoUpload } from "./PhotoUpload";
 import { FormField } from "./FormField";
 import { RoleSelect } from "./RoleSelect";
@@ -19,7 +18,7 @@ import { VolleyballIcon } from "./VolleyballIcon";
 
 export function RegistrationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submissionResult, setSubmissionResult] = useState<ValidatedPlayerDemoRecord | null>(null);
+  const [submissionResult, setSubmissionResult] = useState<RegisteredPlayerData | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -69,16 +68,16 @@ export function RegistrationForm() {
       // Cast to validated input as guaranteed by Zod resolver
       const validatedInput = data as PlayerRegistrationInput;
 
-      // Call isolated submission function
-      const response = await handlePlayerRegistration(validatedInput, photoPreviewUrl || "");
+      // Call real backend submission handler
+      const response = await handlePlayerRegistration(validatedInput);
 
       if (response.success && response.data) {
         setSubmissionResult(response.data);
       } else {
-        setFormError(response.error || "An unexpected validation error occurred.");
+        setFormError(response.error || "An unexpected error occurred during registration.");
       }
     } catch {
-      setFormError("Could not process registration. Please check your inputs.");
+      setFormError("Could not connect to registration server. Please verify backend is running.");
     } finally {
       setIsSubmitting(false);
     }
@@ -100,19 +99,13 @@ export function RegistrationForm() {
     setFormError(null);
   };
 
-  const handleEditDetails = () => {
-    // Return to form with current inputs intact
-    setSubmissionResult(null);
-  };
-
   return (
     <div className="w-full max-w-[640px] mx-auto px-4 sm:px-6 py-6 sm:py-10">
-      {/* If demo submission has completed, show validated feedback card */}
+      {/* If submission has completed, show confirmed feedback card with assigned serial */}
       {submissionResult ? (
         <SubmissionFeedback
           record={submissionResult}
           onReset={handleResetForm}
-          onEdit={handleEditDetails}
         />
       ) : (
         <div className="space-y-6 sm:space-y-8">
@@ -121,7 +114,7 @@ export function RegistrationForm() {
             {/* Subtle Volleyball Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-[#0a2e1b] border border-emerald-300 text-xs font-bold uppercase tracking-wider shadow-xs">
               <VolleyballIcon size={16} strokeColor="#0a2e1b" />
-              <span>Official Tournament Entry</span>
+              <span>Volleyball Friends Nalthur Trophy 2026</span>
             </div>
 
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-neutral-900 tracking-tight">
@@ -227,7 +220,7 @@ export function RegistrationForm() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Validating Registration...</span>
+                      <span>Saving Registration...</span>
                     </>
                   ) : (
                     <>
@@ -240,7 +233,7 @@ export function RegistrationForm() {
 
               {/* Tournament Privacy / Policy note */}
               <p className="text-center text-[11px] text-neutral-400">
-                Tournament entry managed by Volleyball Friends Nalthur Organizers.
+                Official tournament registration for Volleyball Friends Nalthur Trophy 2026.
               </p>
             </form>
           </div>
