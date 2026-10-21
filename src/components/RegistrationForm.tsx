@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, ArrowRight, ShieldAlert } from "lucide-react";
@@ -42,7 +42,17 @@ export function RegistrationForm() {
     mode: "onTouched",
   });
 
-  // Cleanup photo preview URL when component unmounts
+  // Manage preview URL creation and cleanup
+  const handlePhotoSelect = useCallback((file: File | null) => {
+    setPhotoPreviewUrl((prevUrl) => {
+      if (prevUrl) {
+        URL.revokeObjectURL(prevUrl);
+      }
+      return file ? URL.createObjectURL(file) : null;
+    });
+  }, []);
+
+  // Cleanup photo preview URL when component unmounts entirely
   useEffect(() => {
     return () => {
       if (photoPreviewUrl) {
@@ -144,9 +154,12 @@ export function RegistrationForm() {
                 render={({ field }) => (
                   <PhotoUpload
                     value={field.value}
-                    onChange={field.onChange}
+                    previewUrl={photoPreviewUrl}
+                    onChange={(file) => {
+                      field.onChange(file);
+                      handlePhotoSelect(file);
+                    }}
                     error={errors.photo?.message}
-                    onPreviewChange={(url) => setPhotoPreviewUrl(url)}
                   />
                 )}
               />

@@ -1,47 +1,25 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useCallback } from "react";
-import { Camera, UploadCloud, X, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
+import React, { useRef, useState, useCallback } from "react";
+import { Camera, UploadCloud, X, RefreshCw, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
 import { ACCEPTED_IMAGE_TYPES, MAX_FILE_SIZE_BYTES } from "@/lib/validation";
 
 interface PhotoUploadProps {
   value: File | null;
+  previewUrl: string | null;
   onChange: (file: File | null) => void;
   error?: string;
-  onPreviewChange?: (url: string | null) => void;
 }
 
 export function PhotoUpload({
   value,
+  previewUrl,
   onChange,
   error,
-  onPreviewChange,
 }: PhotoUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [internalError, setInternalError] = useState<string | null>(null);
-
-  // Manage object URL lifecycle to prevent memory leaks
-  useEffect(() => {
-    if (!value) {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-        setPreviewUrl(null);
-        onPreviewChange?.(null);
-      }
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(value);
-    setPreviewUrl(objectUrl);
-    onPreviewChange?.(objectUrl);
-
-    // Cleanup when value changes or component unmounts
-    return () => {
-      URL.revokeObjectURL(objectUrl);
-    };
-  }, [value, onPreviewChange]);
 
   // Validate file client-side
   const validateAndSelectFile = useCallback(
@@ -111,6 +89,52 @@ export function PhotoUpload({
     fileInputRef.current?.click();
   };
 
+  // Helper to load sample player portrait for immediate demo testing
+  const handleUseDemoPhoto = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 300;
+      canvas.height = 300;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        // Deep forest sports gradient background
+        const grad = ctx.createLinearGradient(0, 0, 300, 300);
+        grad.addColorStop(0, "#072416");
+        grad.addColorStop(1, "#145936");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 300, 300);
+
+        // Sports player silhouette
+        ctx.fillStyle = "#dcfce7";
+        ctx.beginPath();
+        ctx.arc(150, 105, 46, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(150, 260, 90, 0, Math.PI, true);
+        ctx.fill();
+
+        // Text emblem
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 16px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("VFN PLAYER", 150, 195);
+      }
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const demoFile = new File([blob], "demo-player-photo.png", {
+            type: "image/png",
+          });
+          validateAndSelectFile(demoFile);
+        }
+      }, "image/png");
+    } catch {
+      // Fallback if canvas is restricted
+    }
+  };
+
   const displayError = internalError || error;
 
   return (
@@ -170,7 +194,7 @@ export function PhotoUpload({
               <button
                 type="button"
                 onClick={handleTriggerUpload}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400 transition-colors shadow-xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400 transition-colors shadow-xs cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5 text-emerald-800" />
                 <span>Replace</span>
@@ -179,7 +203,7 @@ export function PhotoUpload({
               <button
                 type="button"
                 onClick={handleRemove}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 transition-colors shadow-xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 transition-colors shadow-xs cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Remove</span>
@@ -202,7 +226,7 @@ export function PhotoUpload({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`group relative rounded-2xl border-2 border-dashed p-6 sm:p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 ${
+          className={`group relative rounded-2xl border-2 border-dashed p-6 sm:p-7 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 ${
             isDragging
               ? "border-emerald-600 bg-emerald-50 scale-[1.01]"
               : displayError
@@ -230,6 +254,18 @@ export function PhotoUpload({
           <div className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-neutral-400">
             <UploadCloud className="w-3.5 h-3.5" />
             <span>JPEG, PNG, WebP up to 5 MB</span>
+          </div>
+
+          {/* Quick Demo Photo Trigger */}
+          <div className="mt-3 pt-3 border-t border-neutral-100 w-full flex justify-center">
+            <button
+              type="button"
+              onClick={handleUseDemoPhoto}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 text-[11px] font-semibold text-emerald-800 transition-colors cursor-pointer"
+            >
+              <Sparkles className="w-3 h-3 text-emerald-600" />
+              <span>Use Demo Photo for Quick Test</span>
+            </button>
           </div>
         </div>
       )}
