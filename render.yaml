@@ -30,8 +30,8 @@ services:
       - key: ADMIN_FULL_NAME
         value: Tournament Admin
       - key: CLOUDINARY_CLOUD_NAME
-        sync: false
+        value: wcajcjoc
       - key: CLOUDINARY_API_KEY
-        sync: false
+        value: "822824153389891"
       - key: CLOUDINARY_API_SECRET
         sync: false

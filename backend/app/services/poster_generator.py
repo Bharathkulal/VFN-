@@ -105,32 +105,40 @@ def load_player_image(photo_path_or_url: str) -> Optional[Image.Image]:
     if not photo_path_or_url:
         return None
 
-    # 1. Check local static uploads path
-    if photo_path_or_url.startswith("/uploads/") or photo_path_or_url.startswith("uploads/"):
-        rel_path = photo_path_or_url.lstrip("/")
-        full_path = os.path.join(os.path.dirname(settings.UPLOAD_DIR), rel_path)
-        if os.path.isfile(full_path):
-            try:
-                return Image.open(full_path).convert("RGB")
-            except Exception as e:
-                logger.warning(f"Could not open local photo file {full_path}: {e}")
-
-    # 2. Check direct absolute or relative file path
-    if os.path.isfile(photo_path_or_url):
-        try:
-            return Image.open(photo_path_or_url).convert("RGB")
-        except Exception:
-            pass
-
-    # 3. Check HTTP / HTTPS remote URL (e.g. Cloudinary)
+    # 1. Check HTTP / HTTPS remote URL (e.g. Cloudinary)
     if photo_path_or_url.startswith("http://") or photo_path_or_url.startswith("https://"):
         try:
-            with httpx.Client(timeout=10.0) as client:
+            with httpx.Client(timeout=15.0) as client:
                 res = client.get(photo_path_or_url)
                 if res.status_code == 200:
                     return Image.open(io.BytesIO(res.content)).convert("RGB")
+                logger.warning(f"Remote photo fetch returned status {res.status_code} for {photo_path_or_url}")
         except Exception as e:
             logger.warning(f"Failed to fetch player photo from remote URL {photo_path_or_url}: {e}")
+
+    # 2. Check all possible local paths (accounting for relative, absolute, uploads, backend/uploads)
+    clean_name = os.path.basename(photo_path_or_url)
+    candidate_paths = [
+        photo_path_or_url,
+        os.path.join(settings.UPLOAD_DIR, clean_name),
+        os.path.join(settings.UPLOAD_DIR, "players", clean_name),
+        os.path.join(os.path.dirname(settings.UPLOAD_DIR), "uploads", "players", clean_name),
+        os.path.join(os.path.dirname(settings.UPLOAD_DIR), "backend", "uploads", "players", clean_name),
+    ]
+
+    if photo_path_or_url.startswith("/uploads/") or photo_path_or_url.startswith("uploads/"):
+        rel_path = photo_path_or_url.lstrip("/")
+        candidate_paths.append(os.path.join(os.path.dirname(settings.UPLOAD_DIR), rel_path))
+        # Strip leading uploads/ to join directly with settings.UPLOAD_DIR
+        clean_rel = rel_path[len("uploads/"):] if rel_path.startswith("uploads/") else rel_path
+        candidate_paths.append(os.path.join(settings.UPLOAD_DIR, clean_rel))
+
+    for path in candidate_paths:
+        if path and os.path.isfile(path):
+            try:
+                return Image.open(path).convert("RGB")
+            except Exception as e:
+                logger.warning(f"Could not open local photo file {path}: {e}")
 
     return None
 

@@ -38,9 +38,9 @@ class Settings(BaseSettings):
     ADMIN_FULL_NAME: str = "Tournament Admin"
 
     # Cloudinary
-    CLOUDINARY_CLOUD_NAME: str = ""
-    CLOUDINARY_API_KEY: str = ""
-    CLOUDINARY_API_SECRET: str = ""
+    CLOUDINARY_CLOUD_NAME: str = Field(default="wcajcjoc")
+    CLOUDINARY_API_KEY: str = Field(default="822824153389891")
+    CLOUDINARY_API_SECRET: str = Field(default="czWXLaFL4SJnYS2Q6lhmg6lz-0w")
     CLOUDINARY_FOLDER: str = "vfn_tournament_2026/players"
     CLOUDINARY_POSTERS_FOLDER: str = "vfn_tournament_2026/posters"
 

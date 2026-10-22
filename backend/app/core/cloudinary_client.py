@@ -9,8 +9,8 @@ from backend.app.core.config import settings
 
 logger = logging.getLogger("sportbid.storage")
 
-ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"]
-MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
+ALLOWED_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"]
+MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB (supports mobile camera photos)
 
 # Initialize Cloudinary if credentials are provided
 if settings.is_cloudinary_configured:
@@ -41,7 +41,7 @@ def validate_photo_file(file_bytes: bytes, content_type: str):
         size_mb = len(file_bytes) / (1024 * 1024)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Photo size ({size_mb:.2f} MB) exceeds maximum allowed limit of 5 MB.",
+            detail=f"Photo size ({size_mb:.2f} MB) exceeds maximum allowed limit of 10 MB.",
         )
 
     if content_type.lower() not in ALLOWED_MIME_TYPES:
@@ -68,25 +68,35 @@ async def upload_player_photo(
         ext = "jpg"
 
     if settings.is_cloudinary_configured:
-        try:
-            logger.info("Uploading player photo to Cloudinary...")
-            result = cloudinary.uploader.upload(
-                file_bytes,
-                folder=settings.CLOUDINARY_FOLDER,
-                public_id=f"player_{unique_id}",
-                resource_type="image",
-                overwrite=True,
-            )
-            photo_url = result.get("secure_url") or result.get("url")
-            public_id = result.get("public_id")
-            logger.info(f"Photo uploaded to Cloudinary: {public_id}")
-            return photo_url, public_id
-        except Exception as e:
-            logger.error(f"Cloudinary upload failed: {e}", exc_info=True)
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Failed to upload player photo to Cloudinary storage. Please try again.",
-            )
+        import time
+        max_retries = 3
+        last_error = None
+        for attempt in range(1, max_retries + 1):
+            try:
+                logger.info(f"Uploading player photo to Cloudinary (attempt {attempt}/{max_retries})...")
+                result = cloudinary.uploader.upload(
+                    file_bytes,
+                    folder=settings.CLOUDINARY_FOLDER,
+                    public_id=f"player_{unique_id}",
+                    resource_type="image",
+                    overwrite=True,
+                    tags=["vfn_tournament_2026", "player_photo"],
+                )
+                photo_url = result.get("secure_url") or result.get("url")
+                public_id = result.get("public_id")
+                logger.info(f"Photo uploaded to Cloudinary: {public_id}")
+                return photo_url, public_id
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Cloudinary upload attempt {attempt} failed: {e}")
+                if attempt < max_retries:
+                    time.sleep(1.0 * attempt)
+
+        logger.error(f"Cloudinary upload failed after {max_retries} attempts: {last_error}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to upload player photo to Cloudinary storage. Please try again.",
+        )
     else:
         # Local development storage fallback
         dest_dir = os.path.join(settings.UPLOAD_DIR, "players")

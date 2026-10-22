@@ -248,7 +248,10 @@ export default function AdminDashboardPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {latestList.map((player) => {
-              const posterPreviewUrl = getPlayerPosterUrl(player.id);
+              const posterPreviewUrl =
+                player.poster_url && player.poster_url.startsWith("http")
+                  ? player.poster_url
+                  : getPlayerPosterUrl(player.id);
               const posterDownloadUrl = getPlayerPosterUrl(player.id, true);
               const filename = `VFN_2026_Poster_#${player.formatted_serial}_${player.player_name}.png`;
 
@@ -489,7 +492,11 @@ export default function AdminDashboardPage() {
             <div className="relative aspect-[16/9] bg-neutral-950 rounded-2xl overflow-hidden border border-neutral-800 shadow-md">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={getPlayerPosterUrl(selectedPoster.id)}
+                src={
+                  selectedPoster.poster_url && selectedPoster.poster_url.startsWith("http")
+                    ? selectedPoster.poster_url
+                    : getPlayerPosterUrl(selectedPoster.id)
+                }
                 alt={`${selectedPoster.player_name}'s official poster`}
                 className="w-full h-full object-contain"
               />

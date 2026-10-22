@@ -581,7 +581,11 @@ export default function RegisteredPlayersPage() {
               <div className="rounded-2xl overflow-hidden border border-neutral-300 shadow-md bg-neutral-950 w-full aspect-[16/9]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={getPlayerPosterUrl(viewingPlayer.id)}
+                  src={
+                    viewingPlayer.poster_url && viewingPlayer.poster_url.startsWith("http")
+                      ? viewingPlayer.poster_url
+                      : getPlayerPosterUrl(viewingPlayer.id)
+                  }
                   alt={`${viewingPlayer.player_name}'s official auction poster`}
                   className="w-full h-full object-contain"
                 />

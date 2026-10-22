@@ -11,6 +11,63 @@ interface PhotoUploadProps {
   error?: string;
 }
 
+// Client-side helper to scale/compress large mobile camera photos
+async function compressImageForUpload(file: File): Promise<File> {
+  // If file is already small (under 1.5MB) and has standard image type, return as-is
+  if (
+    file.size <= 1.5 * 1024 * 1024 &&
+    (file.type === "image/jpeg" || file.type === "image/png" || file.type === "image/webp")
+  ) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_DIM = 1800;
+        let { width, height } = img;
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          } else {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const cleanName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+            const compressedFile = new File([blob], cleanName, { type: "image/jpeg" });
+            resolve(compressedFile);
+          },
+          "image/jpeg",
+          0.88
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
 export function PhotoUpload({
   value,
   previewUrl,
@@ -21,23 +78,26 @@ export function PhotoUpload({
   const [isDragging, setIsDragging] = useState(false);
   const [internalError, setInternalError] = useState<string | null>(null);
 
-  // Validate file client-side
+  // Validate file client-side (with mobile camera compression)
   const validateAndSelectFile = useCallback(
-    (file: File) => {
+    async (file: File) => {
       setInternalError(null);
 
-      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-        setInternalError("Invalid format. Please upload JPEG, PNG, or WebP.");
-        return;
+      // Handle compression for mobile devices / large camera images
+      let fileToUse = file;
+      try {
+        fileToUse = await compressImageForUpload(file);
+      } catch {
+        fileToUse = file;
       }
 
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+      if (fileToUse.size > MAX_FILE_SIZE_BYTES) {
+        const sizeMb = (fileToUse.size / (1024 * 1024)).toFixed(1);
         setInternalError(`File is too large (${sizeMb} MB). Maximum allowed size is 5 MB.`);
         return;
       }
 
-      onChange(file);
+      onChange(fileToUse);
     },
     [onChange]
   );
@@ -159,7 +219,7 @@ export function PhotoUpload({
         ref={fileInputRef}
         id="player-photo-input"
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/*,image/jpeg,image/png,image/webp"
         onChange={handleFileChange}
         className="sr-only"
         aria-describedby={displayError ? "photo-error" : undefined}
