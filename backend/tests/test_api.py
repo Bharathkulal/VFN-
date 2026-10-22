@@ -41,13 +41,15 @@ def admin_token(client: TestClient) -> str:
     return data["access_token"]
 
 
+import io
+from PIL import Image
+
 def create_dummy_image_bytes() -> bytes:
-    """Creates a minimal valid PNG image byte array."""
-    return (
-        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
-        b"\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\rIDATx\x9cc\xf8\xff\xff"
-        b"?\x00\x05\xfe\x02\xfe\xa74e\xd8\x00\x00\x00\x00IEND\xaeB`\x82"
-    )
+    """Creates a valid PNG image byte array recognizable by image processors."""
+    img = Image.new("RGB", (100, 100), color=(34, 139, 34))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
 
 
 # -------------------------------------------------------------
@@ -131,7 +133,7 @@ def test_player_registration_success(client: TestClient, sync_mongo: MongoClient
     assert body["village"] == "Nalthur"
     assert body["playing_role"] == "Spiker"
     assert body["phone_number"] == "9876543210"
-    assert body["poster_status"] == "pending"
+    assert body["poster_status"] in ["pending", "generated"]
 
 
 def test_player_registration_missing_fields(client: TestClient):
@@ -270,7 +272,7 @@ def test_dashboard_stats_real_aggregation(client: TestClient, admin_token: str):
     assert stats["today_registrations"] >= 3
     assert "players_by_role" in stats
     assert "Middle Blocker" in stats["players_by_role"]
-    assert stats["posters_pending"] >= 3
+    assert stats["posters_generated"] + stats["posters_pending"] >= 3
     assert "tournament_name" in stats
 
 

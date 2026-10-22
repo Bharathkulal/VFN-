@@ -60,6 +60,8 @@ export interface PlayerRecord {
   photo_public_id?: string;
   poster_status: "pending" | "generated" | "failed";
   poster_url?: string | null;
+  poster_public_id?: string | null;
+  local_poster_path?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -327,3 +329,5 @@ export async function regeneratePlayerPoster(playerId: string): Promise<PlayerRe
     method: "POST",
   });
 }
+
+

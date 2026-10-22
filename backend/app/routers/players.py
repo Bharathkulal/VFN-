@@ -7,14 +7,17 @@ from typing import Optional
 from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, File, status, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response
+import httpx
 from backend.app.core.database import get_players_collection
 from backend.app.core.security import get_current_admin
+from backend.app.core.config import settings
 from backend.app.core.cloudinary_client import (
     upload_player_photo,
     delete_player_photo,
     upload_player_poster,
     delete_player_poster,
+    is_cloudinary_url,
 )
 from backend.app.services.counter_service import (
     get_next_serial_number,
@@ -170,7 +173,17 @@ async def register_player(
         player_doc["poster_public_id"] = c_poster_id
         logger.info(f"Generated official poster for player #{serial_number} and saved to Cloudinary & MongoDB: {c_poster_url}")
     except Exception as pe:
-        logger.warning(f"Could not auto-generate poster on registration: {pe}")
+        logger.error(f"Could not auto-generate poster on registration: {pe}", exc_info=True)
+        await players_col.update_one(
+            {"_id": player_doc["_id"]},
+            {
+                "$set": {
+                    "poster_status": "failed",
+                    "updated_at": datetime.now(timezone.utc),
+                }
+            },
+        )
+        player_doc["poster_status"] = "failed"
 
     return serialize_player(player_doc)
 
@@ -351,6 +364,115 @@ async def get_or_download_player_poster(
     """
     Retrieves or generates on-the-fly the official auction poster for the player.
     Supports ?download=true to trigger automatic browser download with proper filename.
+    Decoupled from Render ephemeral local disk:
+    - If valid Cloudinary URL is present:
+      - For preview (download=False): 307 Redirects directly to Cloudinary CDN URL.
+      - For download (download=True): Returns local file if present, or fetches/proxies directly
+        from Cloudinary CDN with attachment headers so downloads never fail on ephemeral container restarts.
+    - If Cloudinary URL is missing: Generates poster, uploads to Cloudinary, updates MongoDB, and returns asset.
+    """
+    try:
+        obj_id = ObjectId(player_id)
+    except InvalidId:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid player ID.")
+
+    players_col = get_players_collection()
+    player = await players_col.find_one({"_id": obj_id})
+    if not player:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Player not found.")
+
+    serial_str = format_serial_number(player.get("serial_number", 0))
+    clean_name = "".join([c if c.isalnum() else "_" for c in player.get("player_name", "player")])
+    filename = f"VFN_2026_Poster_#{serial_str}_{clean_name}.png"
+    poster_url = player.get("poster_url")
+
+    # If Cloudinary poster URL is already present and valid
+    if poster_url and is_cloudinary_url(poster_url):
+        if not download:
+            return RedirectResponse(url=poster_url, status_code=307)
+
+        # For download: check if cached locally
+        local_rel = player.get("local_poster_path")
+        if local_rel:
+            local_full = os.path.join(
+                settings.UPLOAD_DIR,
+                "posters",
+                os.path.basename(local_rel),
+            )
+            if os.path.isfile(local_full):
+                return FileResponse(
+                    path=local_full,
+                    filename=filename,
+                    media_type="image/png",
+                    headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+                )
+
+        # Local file wiped by Render restart: fetch directly from Cloudinary CDN and stream attachment
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.get(poster_url)
+                if resp.status_code == 200:
+                    return Response(
+                        content=resp.content,
+                        media_type="image/png",
+                        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+                    )
+                logger.warning(f"Cloudinary fetch returned {resp.status_code} for player {player_id}; regenerating.")
+        except Exception as dl_err:
+            logger.warning(f"Could not proxy download from Cloudinary for player {player_id}: {dl_err}")
+
+    # Fallback or initial generation: generate poster on-the-fly and upload to Cloudinary
+    try:
+        rel_url, filepath = generate_player_poster(player)
+        c_poster_url, c_poster_id = await upload_player_poster(
+            filepath,
+            player.get("serial_number", 0),
+            player.get("player_name", "player"),
+        )
+        await players_col.update_one(
+            {"_id": obj_id},
+            {
+                "$set": {
+                    "poster_status": "generated",
+                    "poster_url": c_poster_url,
+                    "poster_public_id": c_poster_id,
+                    "local_poster_path": rel_url,
+                    "updated_at": datetime.now(timezone.utc),
+                }
+            },
+        )
+    except Exception as e:
+        logger.error(f"Failed to generate and upload poster for player {player_id}: {e}", exc_info=True)
+        await players_col.update_one(
+            {"_id": obj_id},
+            {
+                "$set": {
+                    "poster_status": "failed",
+                    "updated_at": datetime.now(timezone.utc),
+                }
+            },
+        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not generate auction poster.")
+
+    if download:
+        return FileResponse(
+            path=filepath,
+            filename=filename,
+            media_type="image/png",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    return RedirectResponse(url=c_poster_url, status_code=307)
+
+
+@router.post("/{player_id}/poster/generate", response_model=PlayerResponse)
+async def regenerate_poster(
+    player_id: str,
+    admin: dict = Depends(get_current_admin),
+):
+    """
+    Admin-only endpoint to force regenerate a player's auction poster.
+    Reruns design generation, uploads to Cloudinary, and updates MongoDB.
     """
     try:
         obj_id = ObjectId(player_id)
@@ -364,84 +486,35 @@ async def get_or_download_player_poster(
 
     try:
         rel_url, filepath = generate_player_poster(player)
-        
-        # Ensure poster is saved in Cloudinary and MongoDB
-        current_poster_url = player.get("poster_url")
-        if not current_poster_url or not current_poster_url.startswith("http"):
-            c_poster_url, c_poster_id = await upload_player_poster(
-                filepath,
-                player.get("serial_number", 0),
-                player.get("player_name", "player"),
-            )
-            await players_col.update_one(
-                {"_id": obj_id},
-                {
-                    "$set": {
-                        "poster_status": "generated",
-                        "poster_url": c_poster_url,
-                        "poster_public_id": c_poster_id,
-                        "local_poster_path": rel_url,
-                    }
-                },
-            )
+        c_poster_url, c_poster_id = await upload_player_poster(
+            filepath,
+            player.get("serial_number", 0),
+            player.get("player_name", "player"),
+        )
+        await players_col.update_one(
+            {"_id": obj_id},
+            {
+                "$set": {
+                    "poster_status": "generated",
+                    "poster_url": c_poster_url,
+                    "poster_public_id": c_poster_id,
+                    "local_poster_path": rel_url,
+                    "updated_at": datetime.now(timezone.utc),
+                }
+            },
+        )
     except Exception as e:
-        logger.error(f"Failed to generate poster for player {player_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not generate auction poster.")
+        logger.error(f"Failed to regenerate poster for player {player_id}: {e}", exc_info=True)
+        await players_col.update_one(
+            {"_id": obj_id},
+            {
+                "$set": {
+                    "poster_status": "failed",
+                    "updated_at": datetime.now(timezone.utc),
+                }
+            },
+        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to regenerate poster: {str(e)}")
 
-    if not os.path.isfile(filepath):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poster file not found on disk.")
-
-    serial_str = format_serial_number(player.get("serial_number", 0))
-    clean_name = "".join([c if c.isalnum() else "_" for c in player.get("player_name", "player")])
-    filename = f"VFN_2026_Poster_#{serial_str}_{clean_name}.png"
-
-    headers = {}
-    if download:
-        headers["Content-Disposition"] = f'attachment; filename="{filename}"'
-
-    return FileResponse(
-        path=filepath,
-        filename=filename,
-        media_type="image/png",
-        headers=headers,
-    )
-
-
-@router.post("/{player_id}/poster/generate", response_model=PlayerResponse)
-async def regenerate_poster(
-    player_id: str,
-    admin: dict = Depends(get_current_admin),
-):
-    """
-    Admin-only endpoint to force regenerate a player's auction poster.
-    """
-    try:
-        obj_id = ObjectId(player_id)
-    except InvalidId:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid player ID.")
-
-    players_col = get_players_collection()
-    player = await players_col.find_one({"_id": obj_id})
-    if not player:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Player not found.")
-
-    rel_url, filepath = generate_player_poster(player)
-    c_poster_url, c_poster_id = await upload_player_poster(
-        filepath,
-        player.get("serial_number", 0),
-        player.get("player_name", "player"),
-    )
-    await players_col.update_one(
-        {"_id": obj_id},
-        {
-            "$set": {
-                "poster_status": "generated",
-                "poster_url": c_poster_url,
-                "poster_public_id": c_poster_id,
-                "local_poster_path": rel_url,
-                "updated_at": datetime.now(timezone.utc),
-            }
-        },
-    )
     updated = await players_col.find_one({"_id": obj_id})
     return serialize_player(updated)
