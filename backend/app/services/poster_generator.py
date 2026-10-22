@@ -39,69 +39,71 @@ def get_font(font_name: str, size: int) -> ImageFont.FreeTypeFont:
         return ImageFont.load_default()
 
 
-def adjust_player_portrait(photo_img: Image.Image, target_w: int, target_h: int) -> Image.Image:
+def adjust_player_portrait(photo_img: Image.Image, target_w: int = 449, target_h: int = 384) -> Image.Image:
     """
-    Intelligently adjusts, zooms, and crops the player portrait so that:
-    1. Dead black/dark headroom and margins around the player are trimmed.
-    2. The player's face, chest, and athletic posture fill the frame heroically.
-    3. The head sits naturally in the upper portion of the frame without large black voids.
+    Fits and renders the player photo into the designated frame (target_w x target_h)
+    such that:
+    1. The ENTIRE player photo is preserved without any unwanted cropping, stretching, or distortion.
+    2. The original aspect ratio is strictly maintained across portrait, square, and landscape photos.
+    3. An ambient, darkened, and blurred backdrop derived from the photo itself fills any side
+       or top/bottom margins seamlessly, ensuring broadcast-level visual excellence.
+    4. A gentle drop shadow separates the sharp foreground subject from the backdrop.
     """
-    w, h = photo_img.size
-    gray = photo_img.convert("L")
+    from PIL import ImageFilter, ImageEnhance
 
-    # Detect if top area is empty dark background (common in studio/sports portraits)
-    crop_top_offset = 0
-    step_y = max(1, h // 100)
-    for y in range(0, int(h * 0.40), step_y):
-        # Sample central 60% of pixels in this row
-        row_sample = [gray.getpixel((x, y)) for x in range(int(w * 0.20), int(w * 0.80), max(1, w // 20))]
-        if row_sample and (sum(row_sample) / len(row_sample)) > 30:
-            # Subject detected (hair / top of head)
-            crop_top_offset = max(0, y - int(h * 0.03))  # leave slight 3% breathing space
-            break
+    img = photo_img.convert("RGBA")
+    w, h = img.size
 
-    # Also detect if side margins are empty dark background
-    crop_left_offset = 0
-    crop_right_offset = w
-    step_x = max(1, w // 80)
-    for x in range(0, int(w * 0.25), step_x):
-        col_sample = [gray.getpixel((x, y)) for y in range(int(h * 0.20), int(h * 0.80), max(1, h // 20))]
-        if col_sample and (sum(col_sample) / len(col_sample)) > 30:
-            crop_left_offset = max(0, x - int(w * 0.02))
-            break
-    for x in range(w - 1, int(w * 0.75), -step_x):
-        col_sample = [gray.getpixel((x, y)) for y in range(int(h * 0.20), int(h * 0.80), max(1, h // 20))]
-        if col_sample and (sum(col_sample) / len(col_sample)) > 30:
-            crop_right_offset = min(w, x + int(w * 0.02))
-            break
+    # 1. Maintain exact aspect ratio: scale so that entire photo fits inside the frame box
+    scale = min(target_w / w, target_h / h)
+    fit_w = max(1, int(round(w * scale)))
+    fit_h = max(1, int(round(h * scale)))
+    fit_img = img.resize((fit_w, fit_h), Image.Resampling.LANCZOS)
 
-    # Crop out dead margin space if detected
-    if crop_top_offset > 0 or crop_left_offset > 0 or crop_right_offset < w:
-        photo_img = photo_img.crop((crop_left_offset, crop_top_offset, crop_right_offset, h))
-        w, h = photo_img.size
+    # If photo already fills the target frame perfectly (within 1px tolerance)
+    if fit_w >= target_w and fit_h >= target_h:
+        return fit_img.crop((0, 0, target_w, target_h)).convert("RGB")
 
-    # Zoom scale to fill the frame heroically:
-    # 1.15x zoom ensures player's chest and shoulders fill the frame with sports prominence
-    scale = max(target_w / w, target_h / h) * 1.15
-    new_w = int(w * scale)
-    new_h = int(h * scale)
+    # 2. Create ambient background from the photo itself
+    bg_scale = max(target_w / w, target_h / h)
+    bg_w = max(target_w, int(round(w * bg_scale)))
+    bg_h = max(target_h, int(round(h * bg_scale)))
+    bg = img.resize((bg_w, bg_h), Image.Resampling.BILINEAR)
 
-    resized = photo_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+    # Center crop the background to fill target_w x target_h
+    bg_x = (bg_w - target_w) // 2
+    bg_y = (bg_h - target_h) // 2
+    bg_cropped = bg.crop((bg_x, bg_y, bg_x + target_w, bg_y + target_h))
 
-    # Center horizontally
-    left = max(0, (new_w - target_w) // 2)
+    # Apply blur and darken to create a subdued, elegant backdrop
+    bg_blurred = bg_cropped.filter(ImageFilter.GaussianBlur(radius=28))
+    bg_dark = ImageEnhance.Brightness(bg_blurred).enhance(0.35)
 
-    # Position vertically: head sits near the top (~15% padding of surplus height)
-    if new_h > target_h:
-        top = int((new_h - target_h) * 0.15)
+    # 3. Center the sharp fitted photo within the frame
+    ox = (target_w - fit_w) // 2
+    oy = (target_h - fit_h) // 2
+
+    # 4. Add soft drop shadow behind fitted photo
+    shadow = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
+    s_draw = ImageDraw.Draw(shadow)
+    s_draw.rectangle(
+        [max(0, ox - 3), max(0, oy - 3), min(target_w, ox + fit_w + 3), min(target_h, oy + fit_h + 3)],
+        fill=(0, 0, 0, 150),
+    )
+    shadow = shadow.filter(ImageFilter.GaussianBlur(radius=6))
+
+    # 5. Composite: background + shadow + sharp fitted photo
+    canvas = Image.alpha_composite(bg_dark, shadow)
+    if fit_img.mode == "RGBA":
+        canvas.paste(fit_img, (ox, oy), fit_img)
     else:
-        top = 0
+        canvas.paste(fit_img, (ox, oy))
 
-    return resized.crop((left, top, left + target_w, top + target_h))
+    return canvas.convert("RGB")
 
 
 def load_player_image(photo_path_or_url: str) -> Optional[Image.Image]:
-    """Loads player portrait from local disk or URL."""
+    """Loads player portrait from local disk or URL, preserving alpha transparency."""
     if not photo_path_or_url:
         return None
 
@@ -111,7 +113,7 @@ def load_player_image(photo_path_or_url: str) -> Optional[Image.Image]:
             with httpx.Client(timeout=15.0) as client:
                 res = client.get(photo_path_or_url)
                 if res.status_code == 200:
-                    return Image.open(io.BytesIO(res.content)).convert("RGB")
+                    return Image.open(io.BytesIO(res.content)).convert("RGBA")
                 logger.warning(f"Remote photo fetch returned status {res.status_code} for {photo_path_or_url}")
         except Exception as e:
             logger.warning(f"Failed to fetch player photo from remote URL {photo_path_or_url}: {e}")
@@ -136,7 +138,7 @@ def load_player_image(photo_path_or_url: str) -> Optional[Image.Image]:
     for path in candidate_paths:
         if path and os.path.isfile(path):
             try:
-                return Image.open(path).convert("RGB")
+                return Image.open(path).convert("RGBA")
             except Exception as e:
                 logger.warning(f"Could not open local photo file {path}: {e}")
 
@@ -163,11 +165,16 @@ def create_fallback_avatar(w: int, h: int, player_name: str) -> Image.Image:
     return img
 
 
-def generate_player_poster(player_doc: dict) -> Tuple[str, str]:
+def generate_player_poster(
+    player_doc: dict,
+    raw_photo_image: Optional[Image.Image] = None,
+    allow_fallback_avatar: bool = False,
+) -> Tuple[str, str]:
     """
     Generates a high-resolution tournament auction poster matching the exact
     Volleyball Friends Nalthur Trophy 2026 design with Karna Creation branding.
 
+    Preserves 100% of the player's photo without unwanted cropping or stretching.
     Returns: (relative_url, absolute_file_path)
     """
     player_id = str(player_doc.get("_id") or player_doc.get("id"))
@@ -196,9 +203,19 @@ def generate_player_poster(player_doc: dict) -> Tuple[str, str]:
     frame_x, frame_y = 28, 98
     target_w, target_h = 449, 384
 
-    photo_img = load_player_image(player_doc.get("photo_url", ""))
+    if raw_photo_image is not None:
+        photo_img = raw_photo_image
+    else:
+        photo_img = load_player_image(player_doc.get("photo_url", ""))
+
     if photo_img is None:
-        cropped = create_fallback_avatar(target_w, target_h, player_name)
+        if allow_fallback_avatar:
+            cropped = create_fallback_avatar(target_w, target_h, player_name)
+        else:
+            raise ValueError(
+                f"Original photo for player #{formatted_serial} ({player_name}) is missing or inaccessible. "
+                "Cannot generate poster without valid player photo."
+            )
     else:
         cropped = adjust_player_portrait(photo_img, target_w, target_h)
 

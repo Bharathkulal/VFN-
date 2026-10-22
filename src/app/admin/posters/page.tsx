@@ -317,6 +317,15 @@ export default function AuctionPostersPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleRegenerate(previewPoster.id, previewPoster.player_name)}
+                  disabled={Boolean(regeneratingIds[previewPoster.id])}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${Boolean(regeneratingIds[previewPoster.id]) ? "animate-spin" : ""}`} />
+                  <span>Regenerate Poster</span>
+                </button>
                 <a
                   href={getPlayerPosterUrl(previewPoster.id, true)}
                   download={`VFN_2026_Poster_#${previewPoster.formatted_serial}_${previewPoster.player_name}.png`}

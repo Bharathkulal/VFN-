@@ -8,6 +8,8 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, File, status, Query
 from fastapi.responses import FileResponse, RedirectResponse, Response
+import io
+from PIL import Image
 import httpx
 from backend.app.core.database import get_players_collection
 from backend.app.core.security import get_current_admin
@@ -151,7 +153,18 @@ async def register_player(
 
     # Automatically generate official auction poster and save to Cloudinary + MongoDB
     try:
-        rel_url, filepath = generate_player_poster(player_doc)
+        raw_img = None
+        if photo_bytes:
+            try:
+                raw_img = Image.open(io.BytesIO(photo_bytes)).convert("RGBA")
+            except Exception as img_err:
+                logger.warning(f"Could not parse uploaded photo bytes for poster generation: {img_err}")
+
+        rel_url, filepath = generate_player_poster(
+            player_doc,
+            raw_photo_image=raw_img,
+            allow_fallback_avatar=False,
+        )
         c_poster_url, c_poster_id = await upload_player_poster(
             filepath,
             serial_number,
@@ -165,6 +178,7 @@ async def register_player(
                     "poster_url": c_poster_url,
                     "poster_public_id": c_poster_id,
                     "local_poster_path": rel_url,
+                    "updated_at": datetime.now(timezone.utc),
                 }
             },
         )
@@ -173,7 +187,8 @@ async def register_player(
         player_doc["poster_public_id"] = c_poster_id
         logger.info(f"Generated official poster for player #{serial_number} and saved to Cloudinary & MongoDB: {c_poster_url}")
     except Exception as pe:
-        logger.error(f"Could not auto-generate poster on registration: {pe}", exc_info=True)
+        logger.error(f"Could not auto-generate poster on registration for #{serial_number}: {pe}", exc_info=True)
+        # Registration is safely preserved, poster is marked pending/failed for admin recovery
         await players_col.update_one(
             {"_id": player_doc["_id"]},
             {
@@ -465,6 +480,61 @@ async def get_or_download_player_poster(
     return RedirectResponse(url=c_poster_url, status_code=307)
 
 
+@router.get("/posters/audit")
+async def audit_player_posters(admin: dict = Depends(get_current_admin)):
+    """
+    Admin-only endpoint to audit the integrity and Cloudinary persistence
+    of all player posters across the tournament.
+    """
+    players_col = get_players_collection()
+    docs = await players_col.find({}).sort("serial_number", 1).to_list(1000)
+
+    healthy = []
+    missing_or_failed = []
+    missing_photos = []
+
+    for p in docs:
+        p_id = str(p["_id"])
+        s_num = p.get("serial_number", 0)
+        p_name = p.get("player_name", "Unknown")
+        poster_url = p.get("poster_url")
+        photo_url = p.get("photo_url")
+        has_cloudinary = is_cloudinary_url(poster_url)
+        has_photo = bool(photo_url)
+
+        item = {
+            "id": p_id,
+            "serial_number": s_num,
+            "formatted_serial": format_serial_number(s_num),
+            "player_name": p_name,
+            "village": p.get("village", ""),
+            "playing_role": p.get("playing_role", ""),
+            "phone_number": p.get("phone_number", ""),
+            "photo_url": photo_url,
+            "poster_url": poster_url,
+            "poster_status": p.get("poster_status", "pending"),
+            "is_cloudinary": has_cloudinary,
+            "has_photo": has_photo,
+        }
+
+        if not has_photo:
+            missing_photos.append(item)
+
+        if has_cloudinary and p.get("poster_status") == "generated":
+            healthy.append(item)
+        else:
+            missing_or_failed.append(item)
+
+    return {
+        "total_players": len(docs),
+        "healthy_posters": len(healthy),
+        "missing_or_failed_posters": len(missing_or_failed),
+        "missing_photos": len(missing_photos),
+        "healthy": healthy,
+        "missing_or_failed": missing_or_failed,
+    }
+
+
 @router.post("/{player_id}/poster/generate", response_model=PlayerResponse)
 async def regenerate_poster(
     player_id: str,
@@ -472,7 +542,9 @@ async def regenerate_poster(
 ):
     """
     Admin-only endpoint to force regenerate a player's auction poster.
-    Reruns design generation, uploads to Cloudinary, and updates MongoDB.
+    Reruns design generation with corrected uncropped photo logic, uploads to Cloudinary,
+    and updates MongoDB only upon verified success.
+    Preserves existing poster if generation or upload fails.
     """
     try:
         obj_id = ObjectId(player_id)
@@ -484,13 +556,40 @@ async def regenerate_poster(
     if not player:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Player not found.")
 
+    serial_str = format_serial_number(player.get("serial_number", 0))
+    player_name = player.get("player_name", "Player")
+
+    # Verify original photo is available
+    photo_img = load_player_image(player.get("photo_url", ""))
+    if photo_img is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Cannot regenerate poster for player #{serial_str} ({player_name}): "
+                "Original uploaded photo is missing or inaccessible. "
+                "Please update or re-upload the player photo first."
+            ),
+        )
+
     try:
-        rel_url, filepath = generate_player_poster(player)
+        # Generate poster with uncropped logic
+        rel_url, filepath = generate_player_poster(
+            player,
+            raw_photo_image=photo_img,
+            allow_fallback_avatar=False,
+        )
+
+        # Upload replacement poster to Cloudinary
         c_poster_url, c_poster_id = await upload_player_poster(
             filepath,
             player.get("serial_number", 0),
-            player.get("player_name", "player"),
+            player_name,
         )
+
+        if not c_poster_url or not is_cloudinary_url(c_poster_url):
+            raise RuntimeError(f"Cloudinary did not return a valid secure URL: {c_poster_url}")
+
+        # Update MongoDB record only after verified successful upload
         await players_col.update_one(
             {"_id": obj_id},
             {
@@ -503,18 +602,31 @@ async def regenerate_poster(
                 }
             },
         )
+        logger.info(
+            f"Admin {admin.get('email')} successfully regenerated poster for player #{serial_str} ({player_name}) -> {c_poster_url}"
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to regenerate poster for player {player_id}: {e}", exc_info=True)
-        await players_col.update_one(
-            {"_id": obj_id},
-            {
-                "$set": {
-                    "poster_status": "failed",
-                    "updated_at": datetime.now(timezone.utc),
-                }
-            },
+        # Note: We do NOT wipe an existing valid poster_url on failure!
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to regenerate poster for #{serial_str} ({player_name}): {str(e)}",
         )
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to regenerate poster: {str(e)}")
 
     updated = await players_col.find_one({"_id": obj_id})
     return serialize_player(updated)
+
+
+@router.post("/{player_id}/poster/recover", response_model=PlayerResponse)
+async def recover_player_poster(
+    player_id: str,
+    admin: dict = Depends(get_current_admin),
+):
+    """
+    Admin-only safe recovery endpoint for an individual player's poster.
+    Uses the original uploaded photo, verifies it, regenerates the poster,
+    uploads to Cloudinary, and updates MongoDB.
+    """
+    return await regenerate_poster(player_id=player_id, admin=admin)

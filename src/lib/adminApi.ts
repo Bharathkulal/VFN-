@@ -330,4 +330,38 @@ export async function regeneratePlayerPoster(playerId: string): Promise<PlayerRe
   });
 }
 
+export interface PosterAuditResult {
+  total_players: number;
+  healthy_posters: number;
+  missing_or_failed_posters: number;
+  missing_photos: number;
+  healthy: Array<{
+    id: string;
+    serial_number: number;
+    formatted_serial: string;
+    player_name: string;
+    poster_url: string;
+  }>;
+  missing_or_failed: Array<{
+    id: string;
+    serial_number: number;
+    formatted_serial: string;
+    player_name: string;
+    poster_url: string | null;
+    poster_status: string;
+    has_photo: boolean;
+  }>;
+}
+
+export async function fetchPostersAudit(): Promise<PosterAuditResult> {
+  return adminFetch<PosterAuditResult>("/api/v1/players/posters/audit");
+}
+
+export async function recoverPlayerPoster(playerId: string): Promise<PlayerRecord> {
+  return adminFetch<PlayerRecord>(`/api/v1/players/${playerId}/poster/recover`, {
+    method: "POST",
+  });
+}
+
+
 

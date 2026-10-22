@@ -28,6 +28,7 @@ import {
   updatePlayerRecord,
   deletePlayerRecord,
   getPlayerPosterUrl,
+  regeneratePlayerPoster,
   getMediaUrl,
   PlayerRecord,
 } from "@/lib/adminApi";
@@ -53,6 +54,7 @@ export default function RegisteredPlayersPage() {
   const [loading, setLoading] = useState(true);
   const [actionError, setActionError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [regeneratingIds, setRegeneratingIds] = useState<Record<string, boolean>>({});
 
   // Modal states
   const [viewingPlayer, setViewingPlayer] = useState<PlayerRecord | null>(null);
@@ -184,6 +186,27 @@ export default function RegisteredPlayersPage() {
             <span>Pending</span>
           </span>
         );
+    }
+  };
+
+  const handleRegeneratePoster = async (playerId: string, playerName: string) => {
+    try {
+      setRegeneratingIds((prev) => ({ ...prev, [playerId]: true }));
+      setActionError(null);
+      const updated = await regeneratePlayerPoster(playerId);
+      setPlayers((prev) => prev.map((p) => (p.id === playerId ? updated : p)));
+      if (viewingPlayer && viewingPlayer.id === playerId) {
+        setViewingPlayer(updated);
+      }
+      showSuccess(`Poster for ${playerName} regenerated with uncropped photo & synced to Cloudinary!`);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setActionError(err.message);
+      } else {
+        setActionError(`Failed to regenerate poster for ${playerName}.`);
+      }
+    } finally {
+      setRegeneratingIds((prev) => ({ ...prev, [playerId]: false }));
     }
   };
 
@@ -426,6 +449,18 @@ export default function RegisteredPlayersPage() {
 
                         <button
                           type="button"
+                          onClick={() => handleRegeneratePoster(p.id, p.player_name)}
+                          disabled={Boolean(regeneratingIds[p.id])}
+                          title="Regenerate poster with uncropped photo & sync to Cloudinary"
+                          className="p-1.5 rounded-lg text-emerald-700 hover:text-emerald-950 hover:bg-emerald-100/70 transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          <RefreshCw
+                            className={`w-4 h-4 ${Boolean(regeneratingIds[p.id]) ? "animate-spin text-emerald-600" : ""}`}
+                          />
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => handleOpenEdit(p)}
                           title="Edit Player Details"
                           className="p-1.5 rounded-lg text-neutral-500 hover:text-blue-900 hover:bg-blue-50 transition-colors cursor-pointer"
@@ -569,14 +604,25 @@ export default function RegisteredPlayersPage() {
                   <ImageIcon className="w-3.5 h-3.5 text-amber-600" />
                   <span>Official Tournament Auction Poster</span>
                 </span>
-                <a
-                  href={getPlayerPosterUrl(viewingPlayer.id, true)}
-                  download={`VFN_Poster_${viewingPlayer.formatted_serial}_${viewingPlayer.player_name}.png`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black uppercase tracking-wider transition-all shadow-sm cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download Poster (PNG)</span>
-                </a>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleRegeneratePoster(viewingPlayer.id, viewingPlayer.player_name)}
+                    disabled={Boolean(regeneratingIds[viewingPlayer.id])}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${Boolean(regeneratingIds[viewingPlayer.id]) ? "animate-spin" : ""}`} />
+                    <span>Regenerate Poster</span>
+                  </button>
+                  <a
+                    href={getPlayerPosterUrl(viewingPlayer.id, true)}
+                    download={`VFN_Poster_${viewingPlayer.formatted_serial}_${viewingPlayer.player_name}.png`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black uppercase tracking-wider transition-all shadow-sm cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download (PNG)</span>
+                  </a>
+                </div>
               </div>
               <div className="rounded-2xl overflow-hidden border border-neutral-300 shadow-md bg-neutral-950 w-full aspect-[16/9]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
