@@ -20,10 +20,12 @@ SPIKER_BADGE_PATH = os.path.join(ASSETS_DIR, "spiker_badge.png")
 
 
 def get_font(font_name: str, size: int) -> ImageFont.FreeTypeFont:
-    """Attempts to load a Windows TrueType font, falling back gracefully."""
+    """Attempts to load a bundled or system TrueType font, falling back gracefully."""
     font_paths = [
+        os.path.join(ASSETS_DIR, "fonts", font_name),
         os.path.join(r"C:\Windows\Fonts", font_name),
         os.path.join("/usr/share/fonts/truetype", font_name),
+        os.path.join("/usr/share/fonts/truetype/dejavu", font_name),
     ]
     for p in font_paths:
         if os.path.isfile(p):
@@ -31,7 +33,71 @@ def get_font(font_name: str, size: int) -> ImageFont.FreeTypeFont:
                 return ImageFont.truetype(p, size)
             except Exception:
                 pass
-    return ImageFont.load_default()
+    try:
+        return ImageFont.load_default(size=size)
+    except Exception:
+        return ImageFont.load_default()
+
+
+def adjust_player_portrait(photo_img: Image.Image, target_w: int, target_h: int) -> Image.Image:
+    """
+    Intelligently adjusts, zooms, and crops the player portrait so that:
+    1. Dead black/dark headroom and margins around the player are trimmed.
+    2. The player's face, chest, and athletic posture fill the frame heroically.
+    3. The head sits naturally in the upper portion of the frame without large black voids.
+    """
+    w, h = photo_img.size
+    gray = photo_img.convert("L")
+
+    # Detect if top area is empty dark background (common in studio/sports portraits)
+    crop_top_offset = 0
+    step_y = max(1, h // 100)
+    for y in range(0, int(h * 0.40), step_y):
+        # Sample central 60% of pixels in this row
+        row_sample = [gray.getpixel((x, y)) for x in range(int(w * 0.20), int(w * 0.80), max(1, w // 20))]
+        if row_sample and (sum(row_sample) / len(row_sample)) > 30:
+            # Subject detected (hair / top of head)
+            crop_top_offset = max(0, y - int(h * 0.03))  # leave slight 3% breathing space
+            break
+
+    # Also detect if side margins are empty dark background
+    crop_left_offset = 0
+    crop_right_offset = w
+    step_x = max(1, w // 80)
+    for x in range(0, int(w * 0.25), step_x):
+        col_sample = [gray.getpixel((x, y)) for y in range(int(h * 0.20), int(h * 0.80), max(1, h // 20))]
+        if col_sample and (sum(col_sample) / len(col_sample)) > 30:
+            crop_left_offset = max(0, x - int(w * 0.02))
+            break
+    for x in range(w - 1, int(w * 0.75), -step_x):
+        col_sample = [gray.getpixel((x, y)) for y in range(int(h * 0.20), int(h * 0.80), max(1, h // 20))]
+        if col_sample and (sum(col_sample) / len(col_sample)) > 30:
+            crop_right_offset = min(w, x + int(w * 0.02))
+            break
+
+    # Crop out dead margin space if detected
+    if crop_top_offset > 0 or crop_left_offset > 0 or crop_right_offset < w:
+        photo_img = photo_img.crop((crop_left_offset, crop_top_offset, crop_right_offset, h))
+        w, h = photo_img.size
+
+    # Zoom scale to fill the frame heroically:
+    # 1.15x zoom ensures player's chest and shoulders fill the frame with sports prominence
+    scale = max(target_w / w, target_h / h) * 1.15
+    new_w = int(w * scale)
+    new_h = int(h * scale)
+
+    resized = photo_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+    # Center horizontally
+    left = max(0, (new_w - target_w) // 2)
+
+    # Position vertically: head sits near the top (~15% padding of surplus height)
+    if new_h > target_h:
+        top = int((new_h - target_h) * 0.15)
+    else:
+        top = 0
+
+    return resized.crop((left, top, left + target_w, top + target_h))
 
 
 def load_player_image(photo_path_or_url: str) -> Optional[Image.Image]:
@@ -124,27 +190,9 @@ def generate_player_poster(player_doc: dict) -> Tuple[str, str]:
 
     photo_img = load_player_image(player_doc.get("photo_url", ""))
     if photo_img is None:
-        photo_img = create_fallback_avatar(target_w, target_h, player_name)
-
-    # Aspect fill and crop to target_w x target_h
-    pw, ph = photo_img.size
-    aspect_target = target_w / target_h
-    aspect_photo = pw / ph
-
-    if aspect_photo > aspect_target:
-        # Photo is wider than target: scale by height, crop sides
-        new_h = target_h
-        new_w = int(pw * (target_h / ph))
-        resized = photo_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
-        left = (new_w - target_w) // 2
-        cropped = resized.crop((left, 0, left + target_w, target_h))
+        cropped = create_fallback_avatar(target_w, target_h, player_name)
     else:
-        # Photo is taller than target: scale by width, crop top/bottom
-        new_w = target_w
-        new_h = int(ph * (target_w / pw))
-        resized = photo_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
-        top = max(0, (new_h - target_h) // 3)  # bias slightly towards top for portraits
-        cropped = resized.crop((0, top, target_w, top + target_h))
+        cropped = adjust_player_portrait(photo_img, target_w, target_h)
 
     # Mask with rounded corners
     corner_radius = 24
@@ -174,53 +222,63 @@ def generate_player_poster(player_doc: dict) -> Tuple[str, str]:
         spiker_img = Image.open(SPIKER_BADGE_PATH).convert("RGBA")
         template.paste(spiker_img, (0, 380), spiker_img)
 
-    # 4. Draw Player Name inside the golden brush banner (centered around x=635, y=142)
+    # 4. Draw Player Name inside golden brush banner (centered around x=635, y=143)
     # Banner spans x: 505 to 765, y: 112 to 175
-    font_name_lg = get_font("impact.ttf", 34)
-    font_name_md = get_font("impact.ttf", 26)
-    font_name_sm = get_font("impact.ttf", 20)
-
-    chosen_font = font_name_lg
+    font_size = 36
+    chosen_font = get_font("impact.ttf", font_size)
     bbox = draw.textbbox((0, 0), player_name, font=chosen_font)
     tw = bbox[2] - bbox[0]
-    if tw > 220:
-        chosen_font = font_name_md
-        bbox = draw.textbbox((0, 0), player_name, font=chosen_font)
-        tw = bbox[2] - bbox[0]
-    if tw > 230:
-        chosen_font = font_name_sm
+    while tw > 210 and font_size > 18:
+        font_size -= 2
+        chosen_font = get_font("impact.ttf", font_size)
         bbox = draw.textbbox((0, 0), player_name, font=chosen_font)
         tw = bbox[2] - bbox[0]
 
     th = bbox[3] - bbox[1]
     name_x = 635 - tw // 2
-    name_y = 142 - th // 2 - 3
-    draw.text((name_x, name_y), player_name, font=chosen_font, fill=(0, 0, 0))
+    name_y = 143 - th // 2 - 2
+    draw.text((name_x, name_y), player_name, font=chosen_font, fill=(15, 15, 15))
 
     # 5. Draw Metadata Labels and Values
-    font_lbl = get_font("arialbd.ttf", 11)
-    font_serial = get_font("impact.ttf", 36)
-    font_val = get_font("impact.ttf", 26)
+    font_lbl = get_font("arialbd.ttf", 13)
+    font_serial = get_font("impact.ttf", 46)
 
-    gold_val_color = (252, 198, 38)
-    white_lbl_color = (235, 235, 235)
+    gold_val_color = (255, 204, 30)
+    gold_shadow_color = (60, 40, 0)
+    white_lbl_color = (245, 245, 245)
+
+    def draw_val(x: int, y: int, text: str, initial_size: int = 34, max_width: int = 180):
+        """Draws a large value with dynamic sizing to prevent overlapping the Karna logo."""
+        size = initial_size
+        f = get_font("impact.ttf", size)
+        b = draw.textbbox((0, 0), text, font=f)
+        w = b[2] - b[0]
+        while w > max_width and size > 18:
+            size -= 2
+            f = get_font("impact.ttf", size)
+            b = draw.textbbox((0, 0), text, font=f)
+            w = b[2] - b[0]
+        # Crisp drop shadow
+        draw.text((x + 1, y + 1), text, font=f, fill=gold_shadow_color)
+        draw.text((x, y), text, font=f, fill=gold_val_color)
 
     # Row 1: SERIAL NUMBER (Divider line 1 is at y=181, Divider line 2 is at y=254)
-    draw.text((580, 189), "SERIAL NUMBER", font=font_lbl, fill=white_lbl_color)
-    draw.text((580, 205), formatted_serial, font=font_serial, fill=gold_val_color)
+    draw.text((580, 186), "SERIAL NUMBER", font=font_lbl, fill=white_lbl_color)
+    draw.text((581, 203), formatted_serial, font=font_serial, fill=gold_shadow_color)
+    draw.text((580, 202), formatted_serial, font=font_serial, fill=gold_val_color)
 
     # Row 2: VILLAGE (Divider line 2 is at y=254, Divider line 3 is at y=328)
-    draw.text((580, 262), "VILLAGE", font=font_lbl, fill=white_lbl_color)
-    draw.text((580, 279), village, font=font_val, fill=gold_val_color)
+    draw.text((580, 258), "VILLAGE", font=font_lbl, fill=white_lbl_color)
+    draw_val(580, 274, village, initial_size=34, max_width=180)
 
     # Row 3: ROLE (Divider line 3 is at y=328, Divider line 4 is at y=405)
-    draw.text((580, 336), "ROLE", font=font_lbl, fill=white_lbl_color)
-    draw.text((580, 353), playing_role, font=font_val, fill=gold_val_color)
+    draw.text((580, 330), "ROLE", font=font_lbl, fill=white_lbl_color)
+    draw_val(580, 346, playing_role, initial_size=34, max_width=180)
 
     # Row 4: PHONE (Divider line 4 is at y=405)
-    draw.text((580, 413), "PHONE", font=font_lbl, fill=white_lbl_color)
+    draw.text((580, 404), "PHONE", font=font_lbl, fill=white_lbl_color)
     phone_display = phone if phone.startswith("+") else (f"+91 {phone}" if phone else "N/A")
-    draw.text((580, 430), phone_display, font=font_val, fill=gold_val_color)
+    draw_val(580, 420, phone_display, initial_size=32, max_width=180)
 
     # 6. Save final poster
     final_rgb = template.convert("RGB")
@@ -228,3 +286,4 @@ def generate_player_poster(player_doc: dict) -> Tuple[str, str]:
     logger.info(f"Generated high-resolution auction poster for player #{formatted_serial} ({player_name}) at {out_filepath}")
 
     return rel_url, out_filepath
+
