@@ -22,7 +22,18 @@ export interface LatestRegistration {
   playing_role: string;
   phone_number: string;
   photo_url: string;
+  poster_url?: string | null;
+  poster_status?: string | null;
   created_at?: string;
+}
+
+export function getMediaUrl(url?: string | null): string {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+    return url;
+  }
+  const cleanPath = url.startsWith("/") ? url : `/${url}`;
+  return `${API_BASE_URL}${cleanPath}`;
 }
 
 export interface DashboardStats {
@@ -296,6 +307,23 @@ export function getBackupDownloadUrl(filename: string): string {
 
 export async function restoreDatabaseBackup(filename: string): Promise<RestoreResult> {
   return adminFetch<RestoreResult>(`/api/v1/backup/restore/${encodeURIComponent(filename)}`, {
+    method: "POST",
+  });
+}
+
+// Poster Generation & Download API
+export function getPlayerPosterUrl(playerId: string, download = false): string {
+  const token = getAdminToken();
+  const base = `${API_BASE_URL}/api/v1/players/${playerId}/poster`;
+  const params = new URLSearchParams();
+  if (download) params.set("download", "true");
+  if (token) params.set("token", token);
+  const q = params.toString();
+  return q ? `${base}?${q}` : base;
+}
+
+export async function regeneratePlayerPoster(playerId: string): Promise<PlayerRecord> {
+  return adminFetch<PlayerRecord>(`/api/v1/players/${playerId}/poster/generate`, {
     method: "POST",
   });
 }

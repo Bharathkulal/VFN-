@@ -12,6 +12,8 @@ class LatestRegistrationItem(BaseModel):
     playing_role: str
     phone_number: str
     photo_url: str
+    poster_url: Optional[str] = None
+    poster_status: Optional[str] = "generated"
     created_at: Optional[datetime] = None
 
 

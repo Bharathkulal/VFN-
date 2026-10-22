@@ -14,14 +14,26 @@ import {
   Shield,
   Database,
   Trophy,
+  Download,
+  Eye,
+  X,
+  Sparkles,
+  Image as ImageIcon,
 } from "lucide-react";
-import { fetchDashboardStats, DashboardStats } from "@/lib/adminApi";
+import {
+  fetchDashboardStats,
+  DashboardStats,
+  LatestRegistration,
+  getPlayerPosterUrl,
+  getMediaUrl,
+} from "@/lib/adminApi";
 import { VolleyballIcon } from "@/components/VolleyballIcon";
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPoster, setSelectedPoster] = useState<LatestRegistration | null>(null);
 
   const loadStats = async () => {
     try {
@@ -234,40 +246,100 @@ export default function AdminDashboardPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {latestList.map((player) => (
-              <div
-                key={player.id}
-                className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-neutral-200/80 bg-neutral-50/50 hover:bg-white hover:border-emerald-600/40 hover:shadow-xs transition-all"
-              >
-                {/* Thumbnail */}
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-neutral-200 flex-shrink-0 border border-neutral-300">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={player.photo_url}
-                    alt={player.player_name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {latestList.map((player) => {
+              const posterPreviewUrl = getPlayerPosterUrl(player.id);
+              const posterDownloadUrl = getPlayerPosterUrl(player.id, true);
+              const filename = `VFN_2026_Poster_#${player.formatted_serial}_${player.player_name}.png`;
 
-                {/* Details */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-xs font-black text-neutral-900 truncate">
-                      {player.player_name}
-                    </span>
-                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-900 flex-shrink-0">
+              return (
+                <div
+                  key={player.id}
+                  className="rounded-2xl border border-neutral-200/90 bg-white overflow-hidden shadow-2xs hover:shadow-md hover:border-emerald-700/40 transition-all flex flex-col"
+                >
+                  {/* Poster Preview (16:9 Banner) */}
+                  <div className="relative aspect-[16/9] bg-neutral-950 w-full overflow-hidden group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={posterPreviewUrl}
+                      alt={`${player.player_name}'s official poster`}
+                      className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-200"
+                    />
+
+                    {/* Serial Number Badge */}
+                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-[#072416]/90 border border-emerald-500/30 text-amber-300 text-[11px] font-mono font-black shadow-sm">
                       #{player.formatted_serial}
-                    </span>
+                    </div>
+
+                    {/* Quick Hover Action Overlays */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPoster(player)}
+                        className="px-3 py-1.5 rounded-lg bg-white/95 text-neutral-900 text-xs font-bold flex items-center gap-1.5 shadow-md hover:bg-white cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Preview</span>
+                      </button>
+                      <a
+                        href={posterDownloadUrl}
+                        download={filename}
+                        className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download</span>
+                      </a>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-[11px] text-neutral-500 mt-0.5">
-                    <span className="truncate">{player.village}</span>
-                    <span>•</span>
-                    <span className="font-semibold text-emerald-800">{player.playing_role}</span>
+
+                  {/* Player Details & Action Buttons */}
+                  <div className="p-3.5 space-y-3 flex-1 flex flex-col justify-between">
+                    <div className="flex items-center gap-3">
+                      {/* Player Photo Avatar */}
+                      <div className="w-10 h-10 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200 flex-shrink-0 shadow-2xs">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={getMediaUrl(player.photo_url)}
+                          alt={player.player_name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-sm font-black text-neutral-900 truncate uppercase">
+                          {player.player_name}
+                        </h4>
+                        <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mt-0.5">
+                          <span className="truncate">{player.village}</span>
+                          <span>•</span>
+                          <span className="font-bold text-emerald-800">{player.playing_role}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Direct Download Action Button */}
+                    <div className="pt-2 border-t border-neutral-100 flex items-center gap-2">
+                      <a
+                        href={posterDownloadUrl}
+                        download={filename}
+                        className="flex-1 py-1.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-98 text-slate-950 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-xs transition-all"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download Poster</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPoster(player)}
+                        title="View Full Poster"
+                        className="p-1.5 rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 hover:text-emerald-900 transition-colors cursor-pointer"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -379,6 +451,67 @@ export default function AdminDashboardPage() {
           <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-emerald-800 group-hover:translate-x-1 transition-all" />
         </Link>
       </div>
+
+      {/* Poster Preview Modal */}
+      {selectedPoster && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setSelectedPoster(null)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-2xl w-full border border-neutral-200 shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
+              <div className="flex items-center gap-2.5">
+                <span className="px-2.5 py-1 rounded-md bg-[#072416] text-amber-300 font-mono font-black text-xs">
+                  #{selectedPoster.formatted_serial}
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-neutral-900 uppercase">
+                    {selectedPoster.player_name}
+                  </h3>
+                  <p className="text-xs text-neutral-500">
+                    {selectedPoster.village} • {selectedPoster.playing_role} • +91 {selectedPoster.phone_number}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedPoster(null)}
+                className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-500 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* High-Res Poster Image */}
+            <div className="relative aspect-[16/9] bg-neutral-950 rounded-2xl overflow-hidden border border-neutral-800 shadow-md">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={getPlayerPosterUrl(selectedPoster.id)}
+                alt={`${selectedPoster.player_name}'s official poster`}
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-neutral-400">
+                Volleyball Friends Nalthur Trophy 2026 • Official Auction Poster
+              </span>
+              <a
+                href={getPlayerPosterUrl(selectedPoster.id, true)}
+                download={`VFN_2026_Poster_#${selectedPoster.formatted_serial}_${selectedPoster.player_name}.png`}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-sm transition-all"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download High-Res Poster</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

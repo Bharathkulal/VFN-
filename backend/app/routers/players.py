@@ -1,3 +1,4 @@
+import os
 import math
 import re
 from datetime import datetime, timezone
@@ -6,6 +7,7 @@ from typing import Optional
 from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, File, status, Query
+from fastapi.responses import FileResponse
 from backend.app.core.database import get_players_collection
 from backend.app.core.security import get_current_admin
 from backend.app.core.cloudinary_client import upload_player_photo, delete_player_photo
@@ -14,6 +16,7 @@ from backend.app.services.counter_service import (
     decrement_serial_number_on_failure,
     format_serial_number,
 )
+from backend.app.services.poster_generator import generate_player_poster
 from backend.app.models.player import (
     PlayerBase,
     PlayerResponse,
@@ -136,6 +139,19 @@ async def register_player(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to complete player registration record.",
         )
+
+    # Automatically generate official auction poster
+    try:
+        rel_url, _ = generate_player_poster(player_doc)
+        await players_col.update_one(
+            {"_id": player_doc["_id"]},
+            {"$set": {"poster_status": "generated", "poster_url": rel_url}},
+        )
+        player_doc["poster_status"] = "generated"
+        player_doc["poster_url"] = rel_url
+        logger.info(f"Generated official poster for player #{serial_number}: {rel_url}")
+    except Exception as pe:
+        logger.warning(f"Could not auto-generate poster on registration: {pe}")
 
     return serialize_player(player_doc)
 
@@ -306,3 +322,79 @@ async def delete_player(
         "success": True,
         "message": f"Player #{format_serial_number(doc['serial_number'])} ({doc['player_name']}) deleted successfully.",
     }
+
+
+@router.get("/{player_id}/poster")
+async def get_or_download_player_poster(
+    player_id: str,
+    download: bool = Query(False, description="Whether to trigger file download attachment"),
+):
+    """
+    Retrieves or generates on-the-fly the official auction poster for the player.
+    Supports ?download=true to trigger automatic browser download with proper filename.
+    """
+    try:
+        obj_id = ObjectId(player_id)
+    except InvalidId:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid player ID.")
+
+    players_col = get_players_collection()
+    player = await players_col.find_one({"_id": obj_id})
+    if not player:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Player not found.")
+
+    try:
+        rel_url, filepath = generate_player_poster(player)
+        if player.get("poster_status") != "generated":
+            await players_col.update_one(
+                {"_id": obj_id},
+                {"$set": {"poster_status": "generated", "poster_url": rel_url}},
+            )
+    except Exception as e:
+        logger.error(f"Failed to generate poster for player {player_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not generate auction poster.")
+
+    if not os.path.isfile(filepath):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Poster file not found on disk.")
+
+    serial_str = format_serial_number(player.get("serial_number", 0))
+    clean_name = "".join([c if c.isalnum() else "_" for c in player.get("player_name", "player")])
+    filename = f"VFN_2026_Poster_#{serial_str}_{clean_name}.png"
+
+    headers = {}
+    if download:
+        headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    return FileResponse(
+        path=filepath,
+        filename=filename,
+        media_type="image/png",
+        headers=headers,
+    )
+
+
+@router.post("/{player_id}/poster/generate", response_model=PlayerResponse)
+async def regenerate_poster(
+    player_id: str,
+    admin: dict = Depends(get_current_admin),
+):
+    """
+    Admin-only endpoint to force regenerate a player's auction poster.
+    """
+    try:
+        obj_id = ObjectId(player_id)
+    except InvalidId:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid player ID.")
+
+    players_col = get_players_collection()
+    player = await players_col.find_one({"_id": obj_id})
+    if not player:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Player not found.")
+
+    rel_url, _ = generate_player_poster(player)
+    await players_col.update_one(
+        {"_id": obj_id},
+        {"$set": {"poster_status": "generated", "poster_url": rel_url, "updated_at": datetime.now(timezone.utc)}},
+    )
+    updated = await players_col.find_one({"_id": obj_id})
+    return serialize_player(updated)

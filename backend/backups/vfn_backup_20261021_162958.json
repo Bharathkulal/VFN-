@@ -1,0 +1,52 @@
+{
+  "tournament": "Volleyball Friends Nalthur Trophy 2026",
+  "exported_at": "2026-10-21T16:29:58.270530+00:00",
+  "exported_by": "admin@vfn.com",
+  "players": [
+    {
+      "_id": "6ad8dc46209da8efeecfbe65",
+      "serial_number": 1,
+      "player_name": "Adarsh Shetty",
+      "village": "Nalthur",
+      "playing_role": "Spiker",
+      "phone_number": "9845112233",
+      "photo_url": "/uploads/players/player_0a139daebc25.png",
+      "photo_public_id": "local_player_0a139daebc25",
+      "poster_status": "pending",
+      "poster_url": null,
+      "created_at": "2026-10-21T15:37:42.296000",
+      "updated_at": "2026-10-21T15:37:42.296000"
+    },
+    {
+      "_id": "6ad8e7e25806d490f667881f",
+      "serial_number": 2,
+      "player_name": "Suresh Poojary",
+      "village": "Nalthur",
+      "playing_role": "Setter",
+      "phone_number": "9876543210",
+      "photo_url": "/uploads/players/player_945e260abbad.png",
+      "photo_public_id": "local_player_945e260abbad",
+      "poster_status": "pending",
+      "poster_url": null,
+      "created_at": "2026-10-21T16:27:14.494000",
+      "updated_at": "2026-10-21T16:27:14.494000"
+    }
+  ],
+  "tournament_settings": [
+    {
+      "_id": "tournament_info",
+      "tournament_name": "Volleyball Friends Nalthur Trophy 2026",
+      "organizer": "Volleyball Friends Nalthur",
+      "category": "Volleyball",
+      "year": 2026,
+      "ground": "Nalthur Ground"
+    }
+  ],
+  "counters": [
+    {
+      "_id": "player_serial",
+      "seq": 2
+    }
+  ],
+  "checksum": "cd6835568109a1a35284860c116c06b3a1e85c84ffa4f91af6c967d0fe0e0dd9"
+}

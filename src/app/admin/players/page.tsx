@@ -20,11 +20,15 @@ import {
   MapPin,
   Calendar,
   Sparkles,
+  Download,
+  Image as ImageIcon,
 } from "lucide-react";
 import {
   fetchPlayersList,
   updatePlayerRecord,
   deletePlayerRecord,
+  getPlayerPosterUrl,
+  getMediaUrl,
   PlayerRecord,
 } from "@/lib/adminApi";
 import { PLAYING_ROLES, PlayingRole } from "@/lib/validation";
@@ -356,7 +360,7 @@ export default function RegisteredPlayersPage() {
                       <div className="w-10 h-10 rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200 shadow-2xs">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={p.photo_url}
+                          src={getMediaUrl(p.photo_url)}
                           alt={p.player_name}
                           className="w-full h-full object-cover"
                         />
@@ -410,6 +414,15 @@ export default function RegisteredPlayersPage() {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
+
+                        <a
+                          href={getPlayerPosterUrl(p.id, true)}
+                          download={`VFN_Poster_${p.formatted_serial}_${p.player_name}.png`}
+                          title="Download Auction Poster"
+                          className="p-1.5 rounded-lg text-amber-600 hover:text-amber-800 hover:bg-amber-50 transition-colors cursor-pointer"
+                        >
+                          <Download className="w-4 h-4" />
+                        </a>
 
                         <button
                           type="button"
@@ -500,16 +513,16 @@ export default function RegisteredPlayersPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-              <div className="w-32 h-32 rounded-2xl overflow-hidden bg-neutral-100 border-2 border-emerald-900/30 shadow-sm flex-shrink-0">
+              <div className="w-28 h-28 rounded-2xl overflow-hidden bg-neutral-100 border-2 border-emerald-900/30 shadow-sm flex-shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={viewingPlayer.photo_url}
+                  src={getMediaUrl(viewingPlayer.photo_url)}
                   alt={viewingPlayer.player_name}
                   className="w-full h-full object-cover"
                 />
               </div>
 
-              <div className="flex-1 w-full space-y-2.5 text-xs">
+              <div className="flex-1 w-full space-y-2 text-xs">
                 <div>
                   <span className="text-neutral-400 font-bold uppercase tracking-wider block text-[10px]">
                     Player Name
@@ -519,7 +532,7 @@ export default function RegisteredPlayersPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <div>
                     <span className="text-neutral-400 font-bold uppercase tracking-wider block text-[10px]">
                       Village
@@ -532,21 +545,46 @@ export default function RegisteredPlayersPage() {
                     </span>
                     <p className="font-bold text-emerald-900">{viewingPlayer.playing_role}</p>
                   </div>
-                </div>
-
-                <div>
-                  <span className="text-neutral-400 font-bold uppercase tracking-wider block text-[10px]">
-                    Phone Number
-                  </span>
-                  <p className="font-mono font-bold text-neutral-800">
-                    +91 {viewingPlayer.phone_number}
-                  </p>
+                  <div>
+                    <span className="text-neutral-400 font-bold uppercase tracking-wider block text-[10px]">
+                      Phone
+                    </span>
+                    <p className="font-mono font-bold text-neutral-800">
+                      +91 {viewingPlayer.phone_number}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="pt-2 border-t border-neutral-100 flex items-center justify-between text-[11px] text-neutral-500">
-                  <span>Poster: {viewingPlayer.poster_status.toUpperCase()}</span>
+                  <span className="font-semibold text-emerald-800">Status: {viewingPlayer.poster_status.toUpperCase()}</span>
                   <span>Registered: {new Date(viewingPlayer.created_at).toLocaleString()}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Official Auction Poster Preview & Download */}
+            <div className="space-y-2.5 pt-3 border-t border-neutral-100">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-600 flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Official Tournament Auction Poster</span>
+                </span>
+                <a
+                  href={getPlayerPosterUrl(viewingPlayer.id, true)}
+                  download={`VFN_Poster_${viewingPlayer.formatted_serial}_${viewingPlayer.player_name}.png`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black uppercase tracking-wider transition-all shadow-sm cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download Poster (PNG)</span>
+                </a>
+              </div>
+              <div className="rounded-2xl overflow-hidden border border-neutral-300 shadow-md bg-neutral-950 w-full aspect-[16/9]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={getPlayerPosterUrl(viewingPlayer.id)}
+                  alt={`${viewingPlayer.player_name}'s official auction poster`}
+                  className="w-full h-full object-contain"
+                />
               </div>
             </div>
 
@@ -554,7 +592,7 @@ export default function RegisteredPlayersPage() {
               <button
                 type="button"
                 onClick={() => setViewingPlayer(null)}
-                className="px-4 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold transition-colors"
+                className="px-5 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs font-bold transition-colors cursor-pointer"
               >
                 Close
               </button>

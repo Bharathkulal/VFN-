@@ -48,6 +48,8 @@ async def get_dashboard_statistics(
                 playing_role=p.get("playing_role", ""),
                 phone_number=p.get("phone_number", ""),
                 photo_url=p.get("photo_url", ""),
+                poster_url=p.get("poster_url"),
+                poster_status=p.get("poster_status", "generated"),
                 created_at=p.get("created_at"),
             )
         )
