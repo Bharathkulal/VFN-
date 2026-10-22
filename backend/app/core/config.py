@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str = ""
     CLOUDINARY_API_SECRET: str = ""
     CLOUDINARY_FOLDER: str = "vfn_tournament_2026/players"
+    CLOUDINARY_POSTERS_FOLDER: str = "vfn_tournament_2026/posters"
 
     # Uploads directory fallback for development if Cloudinary is not configured
     UPLOAD_DIR: str = os.path.join(

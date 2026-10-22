@@ -10,7 +10,12 @@ from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, File, s
 from fastapi.responses import FileResponse
 from backend.app.core.database import get_players_collection
 from backend.app.core.security import get_current_admin
-from backend.app.core.cloudinary_client import upload_player_photo, delete_player_photo
+from backend.app.core.cloudinary_client import (
+    upload_player_photo,
+    delete_player_photo,
+    upload_player_poster,
+    delete_player_poster,
+)
 from backend.app.services.counter_service import (
     get_next_serial_number,
     decrement_serial_number_on_failure,
@@ -44,6 +49,7 @@ def serialize_player(doc: dict) -> PlayerResponse:
         photo_public_id=doc.get("photo_public_id"),
         poster_status=doc.get("poster_status", "pending"),
         poster_url=doc.get("poster_url"),
+        poster_public_id=doc.get("poster_public_id"),
         created_at=doc["created_at"],
         updated_at=doc.get("updated_at", doc["created_at"]),
     )
@@ -140,16 +146,29 @@ async def register_player(
             detail="Failed to complete player registration record.",
         )
 
-    # Automatically generate official auction poster
+    # Automatically generate official auction poster and save to Cloudinary + MongoDB
     try:
-        rel_url, _ = generate_player_poster(player_doc)
+        rel_url, filepath = generate_player_poster(player_doc)
+        c_poster_url, c_poster_id = await upload_player_poster(
+            filepath,
+            serial_number,
+            player_name,
+        )
         await players_col.update_one(
             {"_id": player_doc["_id"]},
-            {"$set": {"poster_status": "generated", "poster_url": rel_url}},
+            {
+                "$set": {
+                    "poster_status": "generated",
+                    "poster_url": c_poster_url,
+                    "poster_public_id": c_poster_id,
+                    "local_poster_path": rel_url,
+                }
+            },
         )
         player_doc["poster_status"] = "generated"
-        player_doc["poster_url"] = rel_url
-        logger.info(f"Generated official poster for player #{serial_number}: {rel_url}")
+        player_doc["poster_url"] = c_poster_url
+        player_doc["poster_public_id"] = c_poster_id
+        logger.info(f"Generated official poster for player #{serial_number} and saved to Cloudinary & MongoDB: {c_poster_url}")
     except Exception as pe:
         logger.warning(f"Could not auto-generate poster on registration: {pe}")
 
@@ -345,10 +364,25 @@ async def get_or_download_player_poster(
 
     try:
         rel_url, filepath = generate_player_poster(player)
-        if player.get("poster_status") != "generated":
+        
+        # Ensure poster is saved in Cloudinary and MongoDB
+        current_poster_url = player.get("poster_url")
+        if not current_poster_url or not current_poster_url.startswith("http"):
+            c_poster_url, c_poster_id = await upload_player_poster(
+                filepath,
+                player.get("serial_number", 0),
+                player.get("player_name", "player"),
+            )
             await players_col.update_one(
                 {"_id": obj_id},
-                {"$set": {"poster_status": "generated", "poster_url": rel_url}},
+                {
+                    "$set": {
+                        "poster_status": "generated",
+                        "poster_url": c_poster_url,
+                        "poster_public_id": c_poster_id,
+                        "local_poster_path": rel_url,
+                    }
+                },
             )
     except Exception as e:
         logger.error(f"Failed to generate poster for player {player_id}: {e}", exc_info=True)
@@ -391,10 +425,23 @@ async def regenerate_poster(
     if not player:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Player not found.")
 
-    rel_url, _ = generate_player_poster(player)
+    rel_url, filepath = generate_player_poster(player)
+    c_poster_url, c_poster_id = await upload_player_poster(
+        filepath,
+        player.get("serial_number", 0),
+        player.get("player_name", "player"),
+    )
     await players_col.update_one(
         {"_id": obj_id},
-        {"$set": {"poster_status": "generated", "poster_url": rel_url, "updated_at": datetime.now(timezone.utc)}},
+        {
+            "$set": {
+                "poster_status": "generated",
+                "poster_url": c_poster_url,
+                "poster_public_id": c_poster_id,
+                "local_poster_path": rel_url,
+                "updated_at": datetime.now(timezone.utc),
+            }
+        },
     )
     updated = await players_col.find_one({"_id": obj_id})
     return serialize_player(updated)

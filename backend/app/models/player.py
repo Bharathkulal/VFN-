@@ -103,6 +103,7 @@ class PlayerResponse(BaseModel):
     photo_public_id: Optional[str] = None
     poster_status: str
     poster_url: Optional[str] = None
+    poster_public_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

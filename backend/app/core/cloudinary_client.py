@@ -127,3 +127,67 @@ async def delete_player_photo(photo_public_id: str) -> bool:
         except Exception as e:
             logger.warning(f"Could not delete local photo {photo_public_id}: {e}")
         return False
+
+
+async def upload_player_poster(
+    poster_source: str,  # filepath or URL
+    serial_number: int,
+    player_name: str,
+) -> Tuple[str, str]:
+    """
+    Uploads tournament auction poster to Cloudinary (or preserves local fallback).
+    Returns (poster_url, poster_public_id).
+    """
+    clean_name = "".join([c if c.isalnum() else "_" for c in player_name]).strip("_")[:20]
+    public_id = f"poster_{serial_number:02d}_{clean_name}"
+    local_rel = f"/uploads/posters/{os.path.basename(poster_source)}" if isinstance(poster_source, str) and os.path.isfile(poster_source) else ""
+
+    if settings.is_cloudinary_configured:
+        try:
+            logger.info(f"Uploading auction poster for #{serial_number:02d} ({player_name}) to Cloudinary...")
+            result = cloudinary.uploader.upload(
+                poster_source,
+                folder=settings.CLOUDINARY_POSTERS_FOLDER,
+                public_id=public_id,
+                resource_type="image",
+                overwrite=True,
+            )
+            secure_url = result.get("secure_url") or result.get("url")
+            c_public_id = result.get("public_id")
+            logger.info(f"Auction poster successfully saved in Cloudinary: {c_public_id} -> {secure_url}")
+            return secure_url, c_public_id
+        except Exception as e:
+            logger.error(f"Failed to upload poster to Cloudinary: {e}", exc_info=True)
+            if local_rel:
+                return local_rel, f"local_{public_id}"
+            raise
+
+    return local_rel or f"/uploads/posters/{public_id}.png", f"local_{public_id}"
+
+
+async def delete_player_poster(poster_public_id: str) -> bool:
+    """
+    Deletes a player poster from Cloudinary or local storage.
+    """
+    if not poster_public_id:
+        return False
+
+    if settings.is_cloudinary_configured and not poster_public_id.startswith("local_"):
+        try:
+            result = cloudinary.uploader.destroy(poster_public_id, resource_type="image")
+            logger.info(f"Destroyed Cloudinary poster {poster_public_id}: {result}")
+            return True
+        except Exception as e:
+            logger.warning(f"Could not delete poster {poster_public_id} from Cloudinary: {e}")
+            return False
+    else:
+        try:
+            dest_dir = os.path.join(settings.UPLOAD_DIR, "posters")
+            for fname in os.listdir(dest_dir):
+                if poster_public_id in fname or fname.startswith(poster_public_id):
+                    os.remove(os.path.join(dest_dir, fname))
+                    return True
+        except Exception as e:
+            logger.warning(f"Could not delete local poster {poster_public_id}: {e}")
+        return False
+
