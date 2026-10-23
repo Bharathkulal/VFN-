@@ -56,6 +56,7 @@ class PlayerCreate(PlayerBase):
 
 
 class PlayerUpdate(BaseModel):
+    serial_number: Optional[int] = Field(None, ge=1, description="Official sequential serial number")
     player_name: Optional[str] = Field(None, min_length=2, max_length=60)
     village: Optional[str] = Field(None, min_length=2, max_length=60)
     playing_role: Optional[PlayingRoleEnum] = None

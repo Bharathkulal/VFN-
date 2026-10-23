@@ -22,6 +22,8 @@ import {
   Sparkles,
   Download,
   Image as ImageIcon,
+  FileSpreadsheet,
+  Presentation,
 } from "lucide-react";
 import {
   fetchPlayersList,
@@ -30,6 +32,8 @@ import {
   getPlayerPosterUrl,
   regeneratePlayerPoster,
   getMediaUrl,
+  downloadExportExcel,
+  downloadExportPowerPoint,
   PlayerRecord,
 } from "@/lib/adminApi";
 import { PLAYING_ROLES, PlayingRole } from "@/lib/validation";
@@ -62,6 +66,7 @@ export default function RegisteredPlayersPage() {
   const [deletingPlayer, setDeletingPlayer] = useState<PlayerRecord | null>(null);
 
   // Edit form state
+  const [editSerial, setEditSerial] = useState<number | "">("");
   const [editName, setEditName] = useState("");
   const [editVillage, setEditVillage] = useState("");
   const [editRole, setEditRole] = useState<PlayingRole>("Spiker");
@@ -69,6 +74,8 @@ export default function RegisteredPlayersPage() {
   const [editPosterStatus, setEditPosterStatus] = useState<string>("pending");
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
+  const [exportingPptx, setExportingPptx] = useState(false);
 
   const loadPlayers = useCallback(async () => {
     try {
@@ -109,6 +116,7 @@ export default function RegisteredPlayersPage() {
 
   const handleOpenEdit = (player: PlayerRecord) => {
     setEditingPlayer(player);
+    setEditSerial(player.serial_number);
     setEditName(player.player_name);
     setEditVillage(player.village);
     setEditRole(player.playing_role as PlayingRole);
@@ -122,14 +130,23 @@ export default function RegisteredPlayersPage() {
 
     try {
       setEditSubmitting(true);
-      await updatePlayerRecord(editingPlayer.id, {
+      setActionError(null);
+
+      const updatePayload: Parameters<typeof updatePlayerRecord>[1] = {
         player_name: editName.trim(),
         village: editVillage.trim(),
         playing_role: editRole,
         phone_number: editPhone.trim(),
         poster_status: editPosterStatus,
-      });
-      showSuccess(`Player #${editingPlayer.formatted_serial} details updated.`);
+      };
+
+      if (editSerial !== "" && Number(editSerial) !== editingPlayer.serial_number) {
+        updatePayload.serial_number = Number(editSerial);
+      }
+
+      await updatePlayerRecord(editingPlayer.id, updatePayload);
+      const finalSerial = editSerial !== "" ? String(editSerial).padStart(2, "0") : editingPlayer.formatted_serial;
+      showSuccess(`Player #${finalSerial} (${editName.trim()}) updated successfully!`);
       setEditingPlayer(null);
       loadPlayers();
     } catch (err: unknown) {
@@ -140,6 +157,40 @@ export default function RegisteredPlayersPage() {
       }
     } finally {
       setEditSubmitting(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      setExportingExcel(true);
+      setActionError(null);
+      await downloadExportExcel();
+      showSuccess("Players Master Excel/CSV list downloaded successfully!");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setActionError(err.message);
+      } else {
+        setActionError("Failed to export Excel spreadsheet.");
+      }
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
+  const handleExportPowerPoint = async () => {
+    try {
+      setExportingPptx(true);
+      setActionError(null);
+      await downloadExportPowerPoint();
+      showSuccess("Auction PowerPoint slides (.pptx) downloaded successfully!");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setActionError(err.message);
+      } else {
+        setActionError("Failed to export PowerPoint slides.");
+      }
+    } finally {
+      setExportingPptx(false);
     }
   };
 
@@ -232,14 +283,38 @@ export default function RegisteredPlayersPage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={loadPlayers}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-300 hover:border-neutral-400 text-xs font-bold text-neutral-700 bg-white hover:bg-neutral-50 transition-colors cursor-pointer self-start sm:self-auto"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-            <span>Refresh Table</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              disabled={exportingExcel}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300 hover:border-emerald-500 text-xs font-bold text-emerald-800 bg-emerald-50/70 hover:bg-emerald-100/70 transition-colors cursor-pointer disabled:opacity-50"
+              title="Export all players to Excel-compatible CSV with UTF-8 BOM"
+            >
+              <FileSpreadsheet className={`w-3.5 h-3.5 text-emerald-700 ${exportingExcel ? "animate-spin" : ""}`} />
+              <span>{exportingExcel ? "Exporting..." : "Export Excel"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleExportPowerPoint}
+              disabled={exportingPptx}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-300 hover:border-amber-500 text-xs font-black text-amber-900 bg-amber-50/80 hover:bg-amber-100/80 transition-colors cursor-pointer disabled:opacity-50"
+              title="Export 16:9 widescreen auction bidding slides (.pptx)"
+            >
+              <Presentation className={`w-3.5 h-3.5 text-amber-700 ${exportingPptx ? "animate-spin" : ""}`} />
+              <span>{exportingPptx ? "Generating..." : "Export Auction PPTX"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={loadPlayers}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-300 hover:border-neutral-400 text-xs font-bold text-neutral-700 bg-white hover:bg-neutral-50 transition-colors cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+              <span>Refresh Table</span>
+            </button>
+          </div>
         </div>
 
         {/* Search & Filter Bar */}
@@ -373,9 +448,20 @@ export default function RegisteredPlayersPage() {
                   >
                     {/* Serial Number */}
                     <td className="py-3 px-4 text-center font-mono font-black text-neutral-900">
-                      <span className="inline-block px-2 py-0.5 rounded-md bg-[#0a2e1b] text-white text-xs font-bold">
-                        #{p.formatted_serial}
-                      </span>
+                      <div className="inline-flex items-center justify-center gap-1.5">
+                        <span className="inline-block px-2 py-0.5 rounded-md bg-[#0a2e1b] text-white text-xs font-mono font-bold shadow-2xs">
+                          #{p.formatted_serial}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(p)}
+                          title={`Edit Serial #${p.formatted_serial} (${p.player_name})`}
+                          aria-label={`Edit Serial Number for ${p.player_name}`}
+                          className="p-1 rounded-md text-neutral-400 hover:text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer opacity-70 group-hover:opacity-100"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      </div>
                     </td>
 
                     {/* Photo Thumbnail */}
@@ -674,11 +760,33 @@ export default function RegisteredPlayersPage() {
             </div>
 
             <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
-              <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/60 text-emerald-950 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-emerald-700 flex-shrink-0" />
-                <span>
-                  Serial number <strong>#{editingPlayer.formatted_serial}</strong> is strictly preserved and cannot be altered.
-                </span>
+              {/* Serial Number Input with Duplicate Protection */}
+              <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-amber-950 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-extrabold text-amber-950 uppercase tracking-wider block text-[11px] flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Official Serial Number *</span>
+                  </label>
+                  <span className="text-[10px] text-amber-800 font-bold bg-amber-200/60 px-2 py-0.5 rounded-md">
+                    Current: #{editingPlayer.formatted_serial}
+                  </span>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 font-mono font-black text-amber-700 text-sm">#</span>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    required
+                    value={editSerial}
+                    onChange={(e) => setEditSerial(e.target.value === "" ? "" : parseInt(e.target.value, 10))}
+                    className="w-full rounded-xl border border-amber-300 bg-white p-2.5 pl-8 text-xs font-mono font-black text-neutral-900 focus:border-emerald-800 focus:ring-1 focus:ring-emerald-800"
+                    placeholder="e.g. 1, 2, 3..."
+                  />
+                </div>
+                <p className="text-[10px] text-amber-800/80 font-medium leading-tight">
+                  Duplicate prevention validates that no two players share a serial number. Changing this will safely regenerate the player's official auction poster and sync to Cloudinary.
+                </p>
               </div>
 
               <div className="space-y-1">

@@ -25,8 +25,16 @@ from backend.app.services.counter_service import (
     get_next_serial_number,
     decrement_serial_number_on_failure,
     format_serial_number,
+    is_serial_number_available,
 )
-from backend.app.services.poster_generator import generate_player_poster
+from backend.app.services.poster_generator import (
+    generate_player_poster,
+    load_player_image,
+)
+from backend.app.services.export_service import (
+    generate_players_csv,
+    generate_players_powerpoint,
+)
 from backend.app.models.player import (
     PlayerBase,
     PlayerResponse,
@@ -272,6 +280,42 @@ async def list_players(
     )
 
 
+@router.get("/export/excel")
+@router.get("/export/csv")
+async def export_players_excel(admin: dict = Depends(get_current_admin)):
+    """
+    Exports all registered players to Excel-compatible CSV format with UTF-8 BOM.
+    Contains full details including serial numbers, player name, village, role, phone, and poster links.
+    """
+    players_col = get_players_collection()
+    docs = await players_col.find({}).sort("serial_number", 1).to_list(10000)
+    csv_data = generate_players_csv(docs)
+    bom_csv = "\ufeff" + csv_data
+    filename = "VFN_2026_Players_Master_List.csv"
+    return Response(
+        content=bom_csv.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/export/powerpoint")
+async def export_players_powerpoint(admin: dict = Depends(get_current_admin)):
+    """
+    Generates high-resolution 16:9 widescreen PowerPoint auction slides (.pptx).
+    Includes formatted serial number (#01, #02...), player portrait/poster, role, village, and phone.
+    """
+    players_col = get_players_collection()
+    docs = await players_col.find({}).sort("serial_number", 1).to_list(10000)
+    pptx_bytes = generate_players_powerpoint(docs)
+    filename = "VFN_2026_Auction_Player_Cards.pptx"
+    return Response(
+        content=pptx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.get("/{player_id}", response_model=PlayerResponse)
 async def get_player_by_id(
     player_id: str,
@@ -299,7 +343,7 @@ async def update_player(
 ):
     """
     Admin-only endpoint to update player details.
-    Keeps the serial_number strictly unchanged.
+    Allows updating serial_number with collision prevention and automatic poster regeneration.
     """
     try:
         obj_id = ObjectId(player_id)
@@ -312,13 +356,27 @@ async def update_player(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Player not found.")
 
     update_dict = {}
-    if update_data.player_name is not None:
+    serial_changed = False
+
+    # Check serial number modification
+    if update_data.serial_number is not None and update_data.serial_number != existing.get("serial_number"):
+        new_serial = update_data.serial_number
+        is_free, conflict_name = await is_serial_number_available(new_serial, exclude_player_id=str(obj_id))
+        if not is_free:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Serial number #{format_serial_number(new_serial)} is already assigned to {conflict_name}. Please choose another serial number.",
+            )
+        update_dict["serial_number"] = new_serial
+        serial_changed = True
+
+    if update_data.player_name is not None and update_data.player_name != existing.get("player_name"):
         update_dict["player_name"] = update_data.player_name
-    if update_data.village is not None:
+    if update_data.village is not None and update_data.village != existing.get("village"):
         update_dict["village"] = update_data.village
-    if update_data.playing_role is not None:
+    if update_data.playing_role is not None and update_data.playing_role.value != existing.get("playing_role"):
         update_dict["playing_role"] = update_data.playing_role.value
-    if update_data.phone_number is not None:
+    if update_data.phone_number is not None and update_data.phone_number != existing.get("phone_number"):
         update_dict["phone_number"] = update_data.phone_number
     if update_data.poster_status is not None:
         update_dict["poster_status"] = update_data.poster_status.value
@@ -330,7 +388,59 @@ async def update_player(
 
     update_dict["updated_at"] = datetime.now(timezone.utc)
 
-    await players_col.update_one({"_id": obj_id}, {"$set": update_dict})
+    # When serial number (or key details) changes, regenerate poster safely
+    # Preserve existing poster and Cloudinary URL if regeneration fails!
+    if serial_changed or ("player_name" in update_dict or "playing_role" in update_dict or "village" in update_dict):
+        if existing.get("photo_url"):
+            try:
+                candidate_doc = dict(existing)
+                candidate_doc.update(update_dict)
+                photo_img = load_player_image(candidate_doc.get("photo_url", ""))
+                if photo_img:
+                    rel_url, filepath = generate_player_poster(
+                        candidate_doc,
+                        raw_photo_image=photo_img,
+                        allow_fallback_avatar=False,
+                    )
+                    c_poster_url, c_poster_id = await upload_player_poster(
+                        filepath,
+                        candidate_doc["serial_number"],
+                        candidate_doc["player_name"],
+                    )
+                    if c_poster_url and is_cloudinary_url(c_poster_url):
+                        update_dict["poster_url"] = c_poster_url
+                        update_dict["poster_public_id"] = c_poster_id
+                        update_dict["local_poster_path"] = rel_url
+                        update_dict["poster_status"] = "generated"
+                        logger.info(
+                            f"Regenerated poster for #{candidate_doc['serial_number']} ({candidate_doc['player_name']}) after update -> {c_poster_url}"
+                        )
+            except Exception as pe:
+                logger.warning(
+                    f"Poster regeneration after player update failed for #{existing.get('serial_number')}: {pe}. "
+                    "Preserving existing poster and Cloudinary URL."
+                )
+
+    try:
+        await players_col.update_one({"_id": obj_id}, {"$set": update_dict})
+    except Exception as e:
+        logger.error(f"Failed to update player document: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Database update failed: {str(e)}",
+        )
+
+    # If serial number changed, synchronize counter seq if new serial is higher
+    if serial_changed:
+        from backend.app.core.database import get_counters_collection
+        counters_col = get_counters_collection()
+        new_sn = update_dict["serial_number"]
+        await counters_col.update_one(
+            {"_id": "player_serial"},
+            {"$max": {"seq": new_sn}},
+            upsert=True,
+        )
+
     updated_doc = await players_col.find_one({"_id": obj_id})
     logger.info(f"Admin {admin.get('email')} updated player {player_id}")
 

@@ -255,6 +255,7 @@ export async function fetchPlayersList(params: {
 export async function updatePlayerRecord(
   playerId: string,
   data: Partial<{
+    serial_number: number;
     player_name: string;
     village: string;
     playing_role: string;
@@ -266,6 +267,60 @@ export async function updatePlayerRecord(
     method: "PATCH",
     body: JSON.stringify(data),
   });
+}
+
+export async function downloadExportExcel(): Promise<void> {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE_URL}/api/v1/players/export/excel`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: "include",
+  });
+  if (!res.ok) {
+    let err = "Failed to export Excel spreadsheet";
+    try {
+      const data = await res.json();
+      if (data.detail) err = data.detail;
+    } catch {
+      // ignore
+    }
+    throw new Error(err);
+  }
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "VFN_2026_Players_Master_List.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+export async function downloadExportPowerPoint(): Promise<void> {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE_URL}/api/v1/players/export/powerpoint`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: "include",
+  });
+  if (!res.ok) {
+    let err = "Failed to export PowerPoint slides";
+    try {
+      const data = await res.json();
+      if (data.detail) err = data.detail;
+    } catch {
+      // ignore
+    }
+    throw new Error(err);
+  }
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "VFN_2026_Auction_Player_Cards.pptx";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
 }
 
 export async function deletePlayerRecord(playerId: string): Promise<{ success: boolean; message: string }> {
