@@ -22,6 +22,10 @@ import {
   FileSpreadsheet,
   Presentation,
   CheckCircle2,
+  Phone,
+  Filter,
+  ExternalLink,
+  ChevronRight,
 } from "lucide-react";
 import {
   fetchDashboardStats,
@@ -31,6 +35,8 @@ import {
   getMediaUrl,
   downloadExportExcel,
   downloadExportPowerPoint,
+  fetchPlayersList,
+  PlayerRecord,
 } from "@/lib/adminApi";
 import { VolleyballIcon } from "@/components/VolleyballIcon";
 
@@ -38,10 +44,17 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPoster, setSelectedPoster] = useState<LatestRegistration | null>(null);
+  const [selectedPoster, setSelectedPoster] = useState<PlayerRecord | LatestRegistration | null>(null);
   const [exportingCsv, setExportingCsv] = useState(false);
   const [exportingPpt, setExportingPpt] = useState(false);
   const [exportToast, setExportToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  // Position breakdown interactive filter state
+  const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [rolePlayers, setRolePlayers] = useState<PlayerRecord[]>([]);
+  const [roleLoading, setRoleLoading] = useState(false);
+  const [roleError, setRoleError] = useState<string | null>(null);
+  const positionSectionRef = React.useRef<HTMLDivElement>(null);
 
   const loadStats = async () => {
     try {
@@ -122,6 +135,38 @@ export default function AdminDashboardPage() {
       setTimeout(() => setExportToast(null), 5000);
     } finally {
       setExportingPpt(false);
+    }
+  };
+
+  const handleSelectRole = async (role: string) => {
+    if (selectedRole === role) {
+      setSelectedRole(null);
+      setRolePlayers([]);
+      setRoleError(null);
+      return;
+    }
+
+    setSelectedRole(role);
+    setRoleLoading(true);
+    setRoleError(null);
+
+    try {
+      const res = await fetchPlayersList({
+        role,
+        page: 1,
+        page_size: 100,
+        sort_by: "serial_number",
+        sort_order: "asc",
+      });
+      setRolePlayers(res.players);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setRoleError(err.message);
+      } else {
+        setRoleError(`Could not load players for ${role}.`);
+      }
+    } finally {
+      setRoleLoading(false);
     }
   };
 
@@ -443,22 +488,47 @@ export default function AdminDashboardPage() {
         )}
       </div>
 
-      {/* Playing Role Distribution */}
-      <div className="bg-white rounded-3xl border border-neutral-200/90 p-6 sm:p-7 shadow-xs space-y-4">
-        <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
+      {/* Playing Role Distribution - Clickable Squad Position Breakdown */}
+      <div
+        ref={positionSectionRef}
+        className="bg-white rounded-3xl border border-neutral-200/90 p-6 sm:p-7 shadow-xs space-y-5"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-neutral-100 pb-4 gap-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-emerald-900 text-emerald-300 flex items-center justify-center">
               <VolleyballIcon size={16} strokeColor="#a7f3d0" />
             </div>
             <div>
-              <h2 className="text-base font-black text-neutral-900 uppercase tracking-tight">
-                Squad Position Breakdown
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-black text-neutral-900 uppercase tracking-tight">
+                  Squad Position Breakdown
+                </h2>
+                {selectedRole && (
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">
+                    Filtered: {selectedRole}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-neutral-500">
-                Live count of registered players by volleyball position
+                Click any position card below to view all registered players in that court role
               </p>
             </div>
           </div>
+
+          {selectedRole && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedRole(null);
+                setRolePlayers([]);
+                setRoleError(null);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 text-xs font-bold transition-colors cursor-pointer self-start sm:self-auto"
+            >
+              <X className="w-3.5 h-3.5 text-neutral-500" />
+              <span>Clear Filter / Close</span>
+            </button>
+          )}
         </div>
 
         {isEmpty ? (
@@ -480,25 +550,291 @@ export default function AdminDashboardPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
-            {roleEntries.map(([role, count]) => (
-              <div
-                key={role}
-                className="rounded-2xl border border-neutral-200/80 bg-neutral-50/60 p-4 text-center space-y-1 hover:border-emerald-700/40 transition-colors"
-              >
-                <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider block truncate">
-                  {role}
-                </span>
-                <span className="text-2xl font-black text-neutral-900 block">
-                  {count}
-                </span>
-                <span className="text-[10px] text-neutral-400">
-                  {stats.total_registered_players > 0
-                    ? `${Math.round((count / stats.total_registered_players) * 100)}% of squad`
-                    : "0%"}
-                </span>
+          <div className="space-y-6">
+            {/* 6 Clickable Position Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-1">
+              {roleEntries.map(([role, count]) => {
+                const isSelected = selectedRole === role;
+                return (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => handleSelectRole(role)}
+                    className={`rounded-2xl border p-4 text-center space-y-1.5 transition-all cursor-pointer text-left sm:text-center relative group focus:outline-hidden ${
+                      isSelected
+                        ? "border-2 border-emerald-600 bg-emerald-50/90 shadow-sm ring-2 ring-emerald-500/20"
+                        : "border-neutral-200/80 bg-neutral-50/60 hover:bg-white hover:border-emerald-600/60 hover:shadow-xs active:scale-98"
+                    }`}
+                  >
+                    {isSelected && (
+                      <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-200/70" />
+                    )}
+                    <span
+                      className={`text-[11px] font-bold uppercase tracking-wider block truncate ${
+                        isSelected
+                          ? "text-emerald-950 font-black"
+                          : "text-neutral-600 group-hover:text-emerald-900"
+                      }`}
+                    >
+                      {role}
+                    </span>
+                    <span
+                      className={`text-2xl font-black block tracking-tight ${
+                        isSelected ? "text-emerald-900" : "text-neutral-900"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                    <span className="text-[10px] text-neutral-400 block">
+                      {stats.total_registered_players > 0
+                        ? `${Math.round((count / stats.total_registered_players) * 100)}% of squad`
+                        : "0%"}
+                    </span>
+                    <div className="pt-1 border-t border-neutral-200/50">
+                      <span
+                        className={`text-[10px] font-bold inline-flex items-center gap-0.5 ${
+                          isSelected
+                            ? "text-emerald-800"
+                            : "text-neutral-400 group-hover:text-emerald-800"
+                        }`}
+                      >
+                        {isSelected ? "Active filter" : "View players →"}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Filtered Players Display Section */}
+            {selectedRole && (
+              <div className="rounded-3xl border border-emerald-200 bg-emerald-50/40 p-5 sm:p-6 space-y-5 animate-in fade-in duration-200">
+                {/* Section Header with Quick Switchers */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-emerald-200/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-900 text-emerald-300 flex items-center justify-center font-black text-xs">
+                      {rolePlayers.length}
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-neutral-900 uppercase tracking-tight flex items-center gap-2">
+                        <span>{selectedRole} Registered Roster</span>
+                        <span className="text-xs font-bold text-emerald-800 px-2 py-0.5 rounded-full bg-emerald-200/60 font-mono">
+                          {rolePlayers.length} {rolePlayers.length === 1 ? "player" : "players"}
+                        </span>
+                      </h3>
+                      <p className="text-xs text-neutral-600">
+                        Showing all verified players registered under court position &apos;{selectedRole}&apos;
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Quick Role Switcher Chips */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] font-bold text-neutral-500 mr-1 hidden sm:inline">
+                      Switch Role:
+                    </span>
+                    {roleEntries.map(([r, c]) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => handleSelectRole(r)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                          selectedRole === r
+                            ? "bg-emerald-800 text-white shadow-xs"
+                            : "bg-white border border-neutral-200 text-neutral-700 hover:border-emerald-600 hover:text-emerald-900"
+                        }`}
+                      >
+                        {r} ({c})
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedRole(null);
+                        setRolePlayers([]);
+                      }}
+                      title="Close position view"
+                      className="p-1 rounded-lg hover:bg-emerald-200 text-emerald-800 transition-colors cursor-pointer ml-1"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* State 1: Loading */}
+                {roleLoading && (
+                  <div className="py-12 flex flex-col items-center justify-center space-y-3 text-center">
+                    <div className="w-8 h-8 border-3 border-emerald-800 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-xs font-mono uppercase tracking-wider text-neutral-600">
+                      Loading registered {selectedRole}s from database...
+                    </p>
+                  </div>
+                )}
+
+                {/* State 2: Error */}
+                {!roleLoading && roleError && (
+                  <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+                      <p className="text-xs font-semibold">{roleError}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectRole(selectedRole)}
+                      className="px-3 py-1.5 rounded-lg bg-rose-700 text-white text-xs font-bold hover:bg-rose-800 transition-colors cursor-pointer"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+
+                {/* State 3: Empty State (e.g. Setter with 0 players) */}
+                {!roleLoading && !roleError && rolePlayers.length === 0 && (
+                  <div className="py-10 bg-white rounded-2xl border border-neutral-200 text-center space-y-3 p-6">
+                    <div className="w-12 h-12 rounded-full bg-emerald-100/80 text-emerald-800 flex items-center justify-center mx-auto">
+                      <VolleyballIcon size={24} strokeColor="#065f46" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-bold text-neutral-800 uppercase">
+                        No {selectedRole}s Registered Yet
+                      </h4>
+                      <p className="text-xs text-neutral-500 max-w-md mx-auto">
+                        There are currently zero registered players with the court position &apos;{selectedRole}&apos; in the database.
+                      </p>
+                    </div>
+                    <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
+                      <Link
+                        href="/admin/players"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-800 text-white text-xs font-bold hover:bg-emerald-900 transition-colors"
+                      >
+                        <span>View All Registered Players</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedRole(null);
+                          setRolePlayers([]);
+                        }}
+                        className="px-3 py-1.5 rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-700 text-xs font-bold hover:bg-neutral-100 transition-colors cursor-pointer"
+                      >
+                        Clear Selection
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* State 4: Matching Players Grid */}
+                {!roleLoading && !roleError && rolePlayers.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {rolePlayers.map((player) => {
+                      const posterPreviewUrl =
+                        player.poster_url && player.poster_url.startsWith("http")
+                          ? player.poster_url
+                          : getPlayerPosterUrl(player.id);
+                      const posterDownloadUrl = getPlayerPosterUrl(player.id, true);
+                      const filename = `VFN_2026_Poster_#${player.formatted_serial}_${player.player_name}.png`;
+
+                      return (
+                        <div
+                          key={player.id}
+                          className="rounded-2xl border border-neutral-200/90 bg-white overflow-hidden shadow-2xs hover:shadow-md hover:border-emerald-700/40 transition-all flex flex-col"
+                        >
+                          {/* 16:9 Poster Preview Banner */}
+                          <div className="relative aspect-[16/9] bg-neutral-950 w-full overflow-hidden group">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={posterPreviewUrl}
+                              alt={`${player.player_name}'s official poster`}
+                              className="w-full h-full object-contain group-hover:scale-[1.02] transition-transform duration-200"
+                            />
+
+                            {/* Serial Number Badge */}
+                            <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-[#072416]/90 border border-emerald-500/30 text-amber-300 text-[11px] font-mono font-black shadow-sm">
+                              #{player.formatted_serial}
+                            </div>
+
+                            {/* Playing Role Pill */}
+                            <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-emerald-900/90 border border-emerald-400/40 text-emerald-200 text-[10px] font-bold shadow-sm uppercase tracking-wider">
+                              {player.playing_role}
+                            </div>
+
+                            {/* Hover Action Overlay */}
+                            <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPoster(player)}
+                                className="px-2.5 py-1.5 rounded-lg bg-white/95 text-neutral-900 text-xs font-bold flex items-center gap-1 shadow-md hover:bg-white cursor-pointer"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Preview</span>
+                              </button>
+                              <a
+                                href={posterDownloadUrl}
+                                download={filename}
+                                className="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black uppercase tracking-wider flex items-center gap-1 shadow-md"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                                <span>Download</span>
+                              </a>
+                            </div>
+                          </div>
+
+                          {/* Player Details & Action Buttons */}
+                          <div className="p-3.5 space-y-3 flex-1 flex flex-col justify-between">
+                            <div className="flex items-center gap-3">
+                              {/* Player Photo Avatar */}
+                              <div className="w-10 h-10 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200 flex-shrink-0 shadow-2xs">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={getMediaUrl(player.photo_url)}
+                                  alt={player.player_name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <h4 className="text-sm font-black text-neutral-900 truncate uppercase">
+                                  {player.player_name}
+                                </h4>
+                                <div className="flex items-center gap-1 text-[11px] text-neutral-500 mt-0.5 truncate">
+                                  <MapPin className="w-3 h-3 text-neutral-400 flex-shrink-0" />
+                                  <span className="truncate">{player.village}</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-[10px] text-neutral-400 mt-0.5 truncate">
+                                  <Phone className="w-2.5 h-2.5 text-neutral-400 flex-shrink-0" />
+                                  <span>+91 {player.phone_number}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="pt-2 border-t border-neutral-100 flex items-center gap-2">
+                              <a
+                                href={posterDownloadUrl}
+                                download={filename}
+                                className="flex-1 py-1.5 px-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-98 text-slate-950 text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1 shadow-xs transition-all"
+                              >
+                                <Download className="w-3 h-3" />
+                                <span>Download</span>
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPoster(player)}
+                                title="View Full Poster"
+                                className="p-1.5 rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 hover:text-emerald-900 transition-colors cursor-pointer"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
