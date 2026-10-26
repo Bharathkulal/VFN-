@@ -19,6 +19,9 @@ import {
   X,
   Sparkles,
   Image as ImageIcon,
+  FileSpreadsheet,
+  Presentation,
+  CheckCircle2,
 } from "lucide-react";
 import {
   fetchDashboardStats,
@@ -26,6 +29,8 @@ import {
   LatestRegistration,
   getPlayerPosterUrl,
   getMediaUrl,
+  downloadExportExcel,
+  downloadExportPowerPoint,
 } from "@/lib/adminApi";
 import { VolleyballIcon } from "@/components/VolleyballIcon";
 
@@ -34,6 +39,9 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPoster, setSelectedPoster] = useState<LatestRegistration | null>(null);
+  const [exportingCsv, setExportingCsv] = useState(false);
+  const [exportingPpt, setExportingPpt] = useState(false);
+  const [exportToast, setExportToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const loadStats = async () => {
     try {
@@ -87,12 +95,67 @@ export default function AdminDashboardPage() {
     );
   }
 
+  const handleDownloadCsv = async () => {
+    try {
+      setExportingCsv(true);
+      await downloadExportExcel();
+      setExportToast({ message: "Master player CSV exported successfully!", type: "success" });
+      setTimeout(() => setExportToast(null), 4000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to export CSV";
+      setExportToast({ message: msg, type: "error" });
+      setTimeout(() => setExportToast(null), 5000);
+    } finally {
+      setExportingCsv(false);
+    }
+  };
+
+  const handleDownloadPpt = async () => {
+    try {
+      setExportingPpt(true);
+      await downloadExportPowerPoint();
+      setExportToast({ message: "Auction PowerPoint deck (.pptx) generated successfully!", type: "success" });
+      setTimeout(() => setExportToast(null), 4000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to export PowerPoint presentation";
+      setExportToast({ message: msg, type: "error" });
+      setTimeout(() => setExportToast(null), 5000);
+    } finally {
+      setExportingPpt(false);
+    }
+  };
+
   const roleEntries = Object.entries(stats.players_by_role || {});
   const isEmpty = stats.total_registered_players === 0;
   const latestList = stats.latest_registrations || [];
 
   return (
     <div className="space-y-6 sm:space-y-8">
+      {/* Toast Notification */}
+      {exportToast && (
+        <div
+          className={`p-4 rounded-2xl flex items-center gap-3 border shadow-md transition-all animate-in fade-in slide-in-from-top-2 ${
+            exportToast.type === "success"
+              ? "bg-emerald-900/90 border-emerald-500/50 text-emerald-100"
+              : "bg-rose-900/90 border-rose-500/50 text-rose-100"
+          }`}
+        >
+          {exportToast.type === "success" ? (
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+          ) : (
+            <AlertCircle className="w-5 h-5 text-rose-400 flex-shrink-0" />
+          )}
+          <p className="text-xs font-bold flex-1">{exportToast.message}</p>
+          <button
+            type="button"
+            onClick={() => setExportToast(null)}
+            className="text-white/60 hover:text-white text-xs cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Tournament Header Banner */}
       <div className="rounded-3xl bg-gradient-to-r from-[#072416] via-[#0a2e1b] to-[#0e4329] text-white p-6 sm:p-8 shadow-md border border-emerald-900/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1.5">
@@ -110,7 +173,39 @@ export default function AdminDashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+          {/* Download CSV Button */}
+          <button
+            type="button"
+            onClick={handleDownloadCsv}
+            disabled={exportingCsv || isEmpty}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition-all cursor-pointer shadow-xs disabled:opacity-40 disabled:cursor-not-allowed hover:border-emerald-400/50"
+            title="Download complete registration data as CSV"
+          >
+            {exportingCsv ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-300" />
+            ) : (
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-300" />
+            )}
+            <span>{exportingCsv ? "Exporting CSV..." : "Download CSV"}</span>
+          </button>
+
+          {/* Download PPT Button */}
+          <button
+            type="button"
+            onClick={handleDownloadPpt}
+            disabled={exportingPpt || isEmpty}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
+            title="Export all player posters into a 16:9 widescreen PowerPoint deck"
+          >
+            {exportingPpt ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-950" />
+            ) : (
+              <Presentation className="w-3.5 h-3.5" />
+            )}
+            <span>{exportingPpt ? "Generating PPT..." : "Download PPT"}</span>
+          </button>
+
           <button
             type="button"
             onClick={loadStats}
@@ -119,6 +214,7 @@ export default function AdminDashboardPage() {
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Refresh</span>
           </button>
+
           <Link
             href="/admin/players"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-[#072416] text-xs font-extrabold uppercase tracking-wider transition-colors shadow-xs"

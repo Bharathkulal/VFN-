@@ -1,3 +1,4 @@
+import os
 import io
 import csv
 import logging
@@ -67,14 +68,14 @@ def generate_players_powerpoint(
     """
     Generates a high-impact 16:9 widescreen PowerPoint presentation (.pptx)
     for tournament player auction bidding.
-    Each slide displays:
-    - Tournament header
-    - Formatted Serial Number (#01, #02, etc.) in gold typography
-    - Player name in bold uppercase
-    - Playing role & village
-    - Contact phone
-    - Embedded player portrait/poster if available
+    - One player per slide
+    - Exactly preserves official poster design, quality, and aspect ratio
+    - Centers the high-res 1024x562 poster on 16:9 widescreen canvas
+    - Robust concurrent image retrieval with disk cache fallback
+    - Safe fallback slide and logging for missing posters
     """
+    from concurrent.futures import ThreadPoolExecutor
+
     prs = Presentation()
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
@@ -82,7 +83,58 @@ def generate_players_powerpoint(
 
     sorted_players = sorted(players, key=lambda x: int(x.get("serial_number", 0)))
 
-    for p in sorted_players:
+    # Fetch poster images concurrently using ThreadPoolExecutor
+    def fetch_player_poster(p: Dict[str, Any]):
+        p_id = str(p.get("_id") or p.get("id") or "")
+        s_num = p.get("serial_number", 0)
+        fmt_serial = format_serial_number(s_num)
+        
+        # 1. Try local disk poster cache first
+        from backend.app.core.config import settings
+        posters_dir = os.path.join(settings.UPLOAD_DIR, "posters")
+        local_path = p.get("local_poster_path")
+        if local_path:
+            clean_name = os.path.basename(local_path)
+            candidate = os.path.join(posters_dir, clean_name)
+            if os.path.isfile(candidate):
+                try:
+                    with open(candidate, "rb") as f:
+                        return p, f.read()
+                except Exception:
+                    pass
+
+        # 2. Try remote poster_url (Cloudinary CDN)
+        poster_url = p.get("poster_url")
+        if poster_url and poster_url.startswith("http"):
+            try:
+                with httpx.Client(timeout=12.0) as client:
+                    resp = client.get(poster_url)
+                    if resp.status_code == 200 and len(resp.content) > 1000:
+                        return p, resp.content
+                    logger.warning(f"Poster URL returned HTTP {resp.status_code} for player #{fmt_serial}")
+            except Exception as e:
+                logger.warning(f"Could not download poster for PPTX slide #{fmt_serial}: {e}")
+
+        # 3. Fallback to player portrait photo if poster is not available
+        photo_url = p.get("photo_url")
+        if photo_url and photo_url.startswith("http"):
+            try:
+                with httpx.Client(timeout=10.0) as client:
+                    resp = client.get(photo_url)
+                    if resp.status_code == 200 and len(resp.content) > 1000:
+                        return p, resp.content
+            except Exception as pe:
+                logger.warning(f"Could not download photo for PPTX fallback #{fmt_serial}: {pe}")
+
+        return p, None
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        fetched_results = list(executor.map(fetch_player_poster, sorted_players))
+
+    # Re-sort results to guarantee strict sequential serial order
+    fetched_results.sort(key=lambda x: int(x[0].get("serial_number", 0)))
+
+    for p, img_bytes in fetched_results:
         s_num = p.get("serial_number", 0)
         fmt_serial = format_serial_number(s_num)
         player_name = (p.get("player_name") or "VOLLEYBALL PLAYER").strip().upper()
@@ -93,95 +145,66 @@ def generate_players_powerpoint(
 
         slide = prs.slides.add_slide(blank_layout)
 
-        # Solid dark luxury background matching tournament gold/black theme
+        # Deep tournament emerald black background
         background = slide.background
         fill = background.fill
         fill.solid()
-        fill.fore_color.rgb = RGBColor(8, 26, 17)  # Deep tournament emerald black
+        fill.fore_color.rgb = RGBColor(8, 26, 17)
 
-        # Top Tournament Banner
-        banner = slide.shapes.add_textbox(Inches(0.8), Inches(0.4), Inches(11.733), Inches(0.8))
-        tf_banner = banner.text_frame
-        tf_banner.word_wrap = True
-        p_banner = tf_banner.paragraphs[0]
-        p_banner.text = tournament_title
-        p_banner.font.size = Pt(20)
-        p_banner.font.bold = True
-        p_banner.font.color.rgb = RGBColor(255, 204, 30)  # Gold
-        p_banner.alignment = PP_ALIGN.CENTER
-
-        # Left Column: Image (Poster or Portrait)
-        # Try fetching poster or photo bytes
-        image_added = False
-        img_url = p.get("poster_url") or p.get("photo_url")
-        if img_url and img_url.startswith("http"):
+        if img_bytes:
             try:
-                with httpx.Client(timeout=5.0) as client:
-                    resp = client.get(img_url)
-                    if resp.status_code == 200:
-                        img_stream = io.BytesIO(resp.content)
-                        # Add image to left side: width 6 inches, centered vertically
-                        slide.shapes.add_picture(
-                            img_stream,
-                            Inches(0.8),
-                            Inches(1.6),
-                            width=Inches(5.8),
-                        )
-                        image_added = True
-            except Exception as e:
-                logger.warning(f"Could not download image for PPTX slide #{fmt_serial}: {e}")
+                img_stream = io.BytesIO(img_bytes)
+                # Official poster dimensions: 1024 x 562 (aspect ratio = 1.822)
+                # Centered in 16:9 slide (13.333" x 7.5") preserving exact ratio
+                poster_w = Inches(13.0)
+                poster_h = Inches(7.135)
+                poster_left = Inches(0.166)
+                poster_top = Inches(0.182)
 
-        # If no image could be downloaded, add a sporty placeholder card
-        if not image_added:
-            card_box = slide.shapes.add_textbox(Inches(0.8), Inches(1.8), Inches(5.8), Inches(4.5))
-            tf_card = card_box.text_frame
-            p_card = tf_card.paragraphs[0]
-            p_card.text = f"VFN 2026\nPLAYER #{fmt_serial}"
-            p_card.font.size = Pt(32)
-            p_card.font.bold = True
-            p_card.font.color.rgb = RGBColor(218, 165, 32)
-            p_card.alignment = PP_ALIGN.CENTER
+                slide.shapes.add_picture(
+                    img_stream,
+                    poster_left,
+                    poster_top,
+                    width=poster_w,
+                    height=poster_h,
+                )
+            except Exception as pe:
+                logger.error(f"Failed to render poster image into slide for #{fmt_serial}: {pe}")
+                img_bytes = None
 
-        # Right Column: Player Auction Details
-        left_pos = Inches(7.0)
+        if not img_bytes:
+            # Fallback auction card slide if poster is completely inaccessible
+            card_box = slide.shapes.add_textbox(Inches(1.0), Inches(1.5), Inches(11.333), Inches(4.5))
+            tf = card_box.text_frame
+            tf.word_wrap = True
 
-        # Big Serial Number
-        serial_box = slide.shapes.add_textbox(left_pos, Inches(1.6), Inches(5.5), Inches(1.2))
-        tf_serial = serial_box.text_frame
-        p_s = tf_serial.paragraphs[0]
-        p_s.text = f"#{fmt_serial}"
-        p_s.font.size = Pt(56)
-        p_s.font.bold = True
-        p_s.font.color.rgb = RGBColor(255, 215, 0)  # Bright gold
+            p_s = tf.paragraphs[0]
+            p_s.text = f"#{fmt_serial}"
+            p_s.font.size = Pt(64)
+            p_s.font.bold = True
+            p_s.font.color.rgb = RGBColor(255, 204, 30)  # Gold
+            p_s.alignment = PP_ALIGN.CENTER
 
-        # Player Name
-        name_box = slide.shapes.add_textbox(left_pos, Inches(2.8), Inches(5.5), Inches(1.0))
-        tf_name = name_box.text_frame
-        p_n = tf_name.paragraphs[0]
-        p_n.text = player_name
-        p_n.font.size = Pt(32)
-        p_n.font.bold = True
-        p_n.font.color.rgb = RGBColor(255, 255, 255)
+            p_n = tf.add_paragraph()
+            p_n.text = player_name
+            p_n.font.size = Pt(36)
+            p_n.font.bold = True
+            p_n.font.color.rgb = RGBColor(255, 255, 255)
+            p_n.alignment = PP_ALIGN.CENTER
 
-        # Metadata Table / Info box
-        info_box = slide.shapes.add_textbox(left_pos, Inches(4.0), Inches(5.5), Inches(2.5))
-        tf_info = info_box.text_frame
+            p_meta = tf.add_paragraph()
+            p_meta.text = f"{role}  •  {village}  •  {phone_display}"
+            p_meta.font.size = Pt(20)
+            p_meta.font.bold = True
+            p_meta.font.color.rgb = RGBColor(52, 211, 153)  # Emerald green
+            p_meta.alignment = PP_ALIGN.CENTER
 
-        p_role = tf_info.paragraphs[0]
-        p_role.text = f"ROLE:  {role}"
-        p_role.font.size = Pt(22)
-        p_role.font.bold = True
-        p_role.font.color.rgb = RGBColor(52, 211, 153)  # Emerald green
-
-        p_vil = tf_info.add_paragraph()
-        p_vil.text = f"VILLAGE:  {village}"
-        p_vil.font.size = Pt(20)
-        p_vil.font.color.rgb = RGBColor(229, 231, 235)  # Light gray
-
-        p_ph = tf_info.add_paragraph()
-        p_ph.text = f"PHONE:  {phone_display}"
-        p_ph.font.size = Pt(18)
-        p_ph.font.color.rgb = RGBColor(156, 163, 175)  # Muted gray
+            p_note = tf.add_paragraph()
+            p_note.text = "(Official auction poster pending or regenerating)"
+            p_note.font.size = Pt(13)
+            p_note.font.italic = True
+            p_note.font.color.rgb = RGBColor(156, 163, 175)
+            p_note.alignment = PP_ALIGN.CENTER
 
     out = io.BytesIO()
     prs.save(out)
