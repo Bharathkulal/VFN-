@@ -85,8 +85,13 @@ export function AdminSidebar({
           className="flex items-center gap-3 group"
           onClick={onClose}
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-yellow-500/10 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-inner group-hover:scale-105 transition-transform">
-            <VolleyballIcon size={22} strokeColor="#f59e0b" accentColor="#1a1408" />
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-amber-500/20 to-yellow-500/10 border border-amber-500/40 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform flex-shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/assets/vfn_logo.png"
+              alt="Volleyball Friends Nalthur Logo"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div className="flex flex-col">
             <span className="text-[11px] font-black tracking-widest text-amber-400 uppercase">

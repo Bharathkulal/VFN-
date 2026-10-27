@@ -70,7 +70,7 @@ function LoginForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5" suppressHydrationWarning>
         {/* Username Field */}
         <div className="space-y-1.5">
           <label
@@ -91,6 +91,7 @@ function LoginForm() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="admin"
+              suppressHydrationWarning
               className="w-full rounded-xl border border-neutral-700/80 bg-[#080b0f] pl-10 pr-3.5 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none transition-colors"
             />
           </div>
@@ -118,11 +119,13 @@ function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="admin"
+              suppressHydrationWarning
               className="w-full rounded-xl border border-neutral-700/80 bg-[#080b0f] pl-10 pr-11 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none transition-colors"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              suppressHydrationWarning
               className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-500 hover:text-amber-400 focus:outline-none cursor-pointer"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
@@ -136,7 +139,7 @@ function LoginForm() {
         </div>
 
         {/* Preconfigured Credentials Pill */}
-        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs">
+        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs" suppressHydrationWarning>
           <div className="flex items-center gap-2 text-amber-300">
             <KeyRound className="w-3.5 h-3.5 text-amber-400" />
             <span>Dev Credentials: <strong>admin</strong> / <strong>admin</strong></span>
@@ -144,6 +147,7 @@ function LoginForm() {
           <button
             type="button"
             onClick={handleFillDevCredentials}
+            suppressHydrationWarning
             className="text-[11px] font-bold text-amber-400 hover:text-amber-300 underline cursor-pointer"
           >
             Auto-fill
@@ -155,6 +159,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
+            suppressHydrationWarning
             className="w-full min-h-[50px] rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:from-amber-400 hover:to-yellow-300 active:scale-[0.99] text-slate-950 text-sm font-black tracking-wider uppercase transition-all shadow-lg shadow-amber-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400"
           >
             {loading ? (
@@ -192,8 +197,13 @@ export default function AdminLoginPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md px-4">
         {/* Header Branding */}
         <div className="text-center space-y-3 mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-yellow-500/10 text-amber-400 border-2 border-amber-500/40 shadow-xl">
-            <VolleyballIcon size={32} strokeColor="#f59e0b" accentColor="#1a1408" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-amber-500/20 to-yellow-500/10 border-2 border-amber-500/40 shadow-xl">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/assets/vfn_logo.png"
+              alt="Volleyball Friends Nalthur Logo"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
             <h1 className="text-2xl font-black text-white uppercase tracking-tight">

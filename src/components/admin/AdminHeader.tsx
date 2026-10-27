@@ -44,7 +44,12 @@ export function AdminHeader({ title, onOpenMobileNav }: AdminHeaderProps) {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-500/30 hover:border-amber-400/60 text-xs font-bold text-amber-300 hover:text-amber-200 bg-[#0f141b] hover:bg-amber-500/10 transition-colors shadow-xs"
           >
-            <VolleyballIcon size={14} strokeColor="#f59e0b" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/assets/vfn_logo.png"
+              alt="VFN Logo"
+              className="w-4 h-4 object-contain rounded-full"
+            />
             <span className="hidden sm:inline">Public Registration</span>
             <ExternalLink className="w-3 h-3 text-amber-400/60" />
           </Link>

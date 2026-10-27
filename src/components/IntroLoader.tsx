@@ -101,13 +101,21 @@ export function IntroLoader({ onComplete }: IntroLoaderProps) {
 
       {/* Centerpiece Hero */}
       <div className="flex flex-col items-center text-center my-auto">
-        {/* Volleyball Graphic with Subtle Pulse */}
+        {/* Volleyball Friends Nalthur Official 3D Tournament Emblem */}
         <motion.div
           variants={itemVariants}
           className="mb-8"
         >
-          <div className="relative">
-            <VolleyballGraphic size={128} />
+          <div className="relative flex items-center justify-center">
+            {/* Ambient golden aura glow */}
+            <div className="absolute inset-0 bg-amber-500/20 blur-3xl rounded-full scale-125 pointer-events-none" />
+            
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/assets/vfn_logo.png"
+              alt="Volleyball Friends Nalthur Official Tournament Emblem"
+              className="relative w-36 h-36 sm:w-44 sm:h-44 object-contain drop-shadow-[0_16px_32px_rgba(0,0,0,0.6)] drop-shadow-[0_4px_24px_rgba(245,158,11,0.25)] select-none"
+            />
           </div>
         </motion.div>
 
