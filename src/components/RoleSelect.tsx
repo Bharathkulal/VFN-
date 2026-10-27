@@ -21,14 +21,14 @@ export const RoleSelect = forwardRef<HTMLSelectElement, RoleSelectProps>(
         <div className="flex items-center justify-between">
           <label
             htmlFor={id}
-            className="text-xs sm:text-sm font-bold tracking-wide uppercase text-neutral-800 flex items-center gap-1.5"
+            className="text-xs sm:text-sm font-bold tracking-wide uppercase text-slate-200 flex items-center gap-1.5"
           >
             <span>Playing Role</span>
-            <span className="text-emerald-700 font-bold" aria-hidden="true">
+            <span className="text-amber-400 font-black" aria-hidden="true">
               *
             </span>
           </label>
-          <span className="text-[11px] text-neutral-500 font-medium">
+          <span className="text-[11px] text-neutral-400 font-medium">
             Select on-court position
           </span>
         </div>
@@ -41,27 +41,27 @@ export const RoleSelect = forwardRef<HTMLSelectElement, RoleSelectProps>(
             onChange={(e) => onChange(e.target.value as PlayingRole)}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? errorId : undefined}
-            className={`w-full appearance-none rounded-xl border bg-white px-3.5 py-3 pr-10 text-sm sm:text-base text-neutral-900 transition-colors duration-150 min-h-[48px] cursor-pointer ${
-              !value ? "text-neutral-400" : "text-neutral-900 font-medium"
+            className={`w-full appearance-none rounded-xl border bg-[#080b0f] px-3.5 py-3 pr-10 text-sm sm:text-base text-white transition-colors duration-150 min-h-[48px] cursor-pointer ${
+              !value ? "text-neutral-500" : "text-white font-medium"
             } ${
               error
-                ? "border-rose-400 bg-rose-50/20 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 focus:outline-none"
-                : "border-neutral-300 focus:border-[#0a2e1b] focus:ring-2 focus:ring-[#0a2e1b]/20 focus:outline-none hover:border-neutral-400"
+                ? "border-rose-500/80 bg-rose-950/20 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 focus:outline-none"
+                : "border-neutral-700/80 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none hover:border-neutral-600"
             }`}
             {...props}
           >
-            <option value="" disabled>
+            <option value="" disabled className="bg-[#0b0e14] text-neutral-400">
               Select your role (e.g., Spiker, Setter)
             </option>
             {PLAYING_ROLES.map((role) => (
-              <option key={role} value={role} className="text-neutral-900 py-1">
+              <option key={role} value={role} className="bg-[#0b0e14] text-white py-1.5">
                 {role}
               </option>
             ))}
           </select>
 
-          {/* Custom Chevron Indicator */}
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5 text-neutral-500">
+          {/* Custom Gold Chevron Indicator */}
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5 text-amber-400">
             <ChevronDown className="w-4 h-4" />
           </div>
         </div>
@@ -70,7 +70,7 @@ export const RoleSelect = forwardRef<HTMLSelectElement, RoleSelectProps>(
           <p
             id={errorId}
             role="alert"
-            className="text-xs font-semibold text-rose-600 flex items-center gap-1.5 mt-1"
+            className="text-xs font-semibold text-rose-400 flex items-center gap-1.5 mt-1"
           >
             <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
             <span>{error}</span>

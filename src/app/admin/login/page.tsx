@@ -59,13 +59,13 @@ function LoginForm() {
   };
 
   return (
-    <div className="bg-white py-8 px-6 sm:px-10 rounded-3xl border border-neutral-200 shadow-xl shadow-emerald-950/5 space-y-6">
+    <div className="bg-[#0d1217] py-8 px-6 sm:px-10 rounded-3xl border border-amber-500/25 shadow-2xl shadow-black/80 space-y-6">
       {errorMessage && (
         <div
           role="alert"
-          className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-start gap-2.5"
+          className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/50 text-rose-300 text-xs font-semibold flex items-start gap-2.5"
         >
-          <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600 mt-0.5" />
+          <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400 mt-0.5" />
           <span>{errorMessage}</span>
         </div>
       )}
@@ -75,12 +75,12 @@ function LoginForm() {
         <div className="space-y-1.5">
           <label
             htmlFor="admin-username"
-            className="block text-xs font-bold uppercase tracking-wider text-neutral-700"
+            className="block text-xs font-bold uppercase tracking-wider text-slate-200"
           >
             Username
           </label>
-          <div className="relative rounded-xl shadow-2xs">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
+          <div className="relative rounded-xl shadow-xs">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-500">
               <User className="w-4 h-4" />
             </div>
             <input
@@ -91,7 +91,7 @@ function LoginForm() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="admin"
-              className="w-full rounded-xl border border-neutral-300 bg-white pl-10 pr-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-[#0a2e1b] focus:ring-2 focus:ring-[#0a2e1b]/20 focus:outline-none transition-colors"
+              className="w-full rounded-xl border border-neutral-700/80 bg-[#080b0f] pl-10 pr-3.5 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none transition-colors"
             />
           </div>
         </div>
@@ -101,13 +101,13 @@ function LoginForm() {
           <div className="flex items-center justify-between">
             <label
               htmlFor="admin-password"
-              className="block text-xs font-bold uppercase tracking-wider text-neutral-700"
+              className="block text-xs font-bold uppercase tracking-wider text-slate-200"
             >
               Password
             </label>
           </div>
-          <div className="relative rounded-xl shadow-2xs">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
+          <div className="relative rounded-xl shadow-xs">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-500">
               <Lock className="w-4 h-4" />
             </div>
             <input
@@ -118,12 +118,12 @@ function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="admin"
-              className="w-full rounded-xl border border-neutral-300 bg-white pl-10 pr-11 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-[#0a2e1b] focus:ring-2 focus:ring-[#0a2e1b]/20 focus:outline-none transition-colors"
+              className="w-full rounded-xl border border-neutral-700/80 bg-[#080b0f] pl-10 pr-11 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:outline-none transition-colors"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-400 hover:text-neutral-700 focus:outline-none cursor-pointer"
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-500 hover:text-amber-400 focus:outline-none cursor-pointer"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? (
@@ -136,15 +136,15 @@ function LoginForm() {
         </div>
 
         {/* Preconfigured Credentials Pill */}
-        <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2 text-emerald-900">
-            <KeyRound className="w-3.5 h-3.5 text-emerald-700" />
+        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2 text-amber-300">
+            <KeyRound className="w-3.5 h-3.5 text-amber-400" />
             <span>Dev Credentials: <strong>admin</strong> / <strong>admin</strong></span>
           </div>
           <button
             type="button"
             onClick={handleFillDevCredentials}
-            className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 underline cursor-pointer"
+            className="text-[11px] font-bold text-amber-400 hover:text-amber-300 underline cursor-pointer"
           >
             Auto-fill
           </button>
@@ -155,17 +155,17 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full min-h-[50px] rounded-xl bg-[#0a2e1b] hover:bg-[#072416] active:scale-[0.99] text-white text-sm font-extrabold tracking-wider uppercase transition-all shadow-md hover:shadow-lg disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0a2e1b] focus:ring-offset-2"
+            className="w-full min-h-[50px] rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:from-amber-400 hover:to-yellow-300 active:scale-[0.99] text-slate-950 text-sm font-black tracking-wider uppercase transition-all shadow-lg shadow-amber-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400"
           >
             {loading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
                 <span>Verifying Credentials...</span>
               </>
             ) : (
               <>
                 <span>Sign In to Dashboard</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4 text-slate-950" />
               </>
             )}
           </button>
@@ -177,12 +177,12 @@ function LoginForm() {
 
 export default function AdminLoginPage() {
   return (
-    <div className="min-h-screen bg-[#f4f7f4] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#070a0e] text-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       {/* Top back to site link */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md px-4 mb-4">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-emerald-900 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-neutral-400 hover:text-amber-400 transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Tournament Registration</span>
@@ -192,17 +192,17 @@ export default function AdminLoginPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md px-4">
         {/* Header Branding */}
         <div className="text-center space-y-3 mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#072416] text-emerald-300 border-2 border-emerald-600/40 shadow-md">
-            <VolleyballIcon size={32} strokeColor="#a7f3d0" accentColor="#062113" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-yellow-500/10 text-amber-400 border-2 border-amber-500/40 shadow-xl">
+            <VolleyballIcon size={32} strokeColor="#f59e0b" accentColor="#1a1408" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-neutral-900 uppercase tracking-tight">
+            <h1 className="text-2xl font-black text-white uppercase tracking-tight">
               Admin Portal
             </h1>
-            <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider mt-0.5">
+            <p className="text-xs font-bold text-amber-400 uppercase tracking-wider mt-0.5">
               Volleyball Friends Nalthur Trophy 2026
             </p>
-            <p className="text-xs text-neutral-500 mt-1">
+            <p className="text-xs text-neutral-400 mt-1">
               Authorized Committee Access • Season 2026
             </p>
           </div>
@@ -211,7 +211,7 @@ export default function AdminLoginPage() {
         {/* Suspense boundary wrapping useSearchParams */}
         <Suspense
           fallback={
-            <div className="bg-white py-12 px-6 rounded-3xl border border-neutral-200 text-center text-xs text-neutral-400">
+            <div className="bg-[#0d1217] py-12 px-6 rounded-3xl border border-neutral-800 text-center text-xs text-neutral-400">
               Loading security portal...
             </div>
           }

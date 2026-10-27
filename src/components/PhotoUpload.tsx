@@ -202,14 +202,14 @@ export function PhotoUpload({
       <div className="flex items-center justify-between">
         <label
           htmlFor="player-photo-input"
-          className="text-xs sm:text-sm font-bold tracking-wide uppercase text-neutral-800 flex items-center gap-1.5"
+          className="text-xs sm:text-sm font-bold tracking-wide uppercase text-slate-200 flex items-center gap-1.5"
         >
           <span>Player Photo</span>
-          <span className="text-emerald-700" aria-hidden="true">
+          <span className="text-amber-400 font-black" aria-hidden="true">
             *
           </span>
         </label>
-        <span className="text-[11px] font-medium text-neutral-500">
+        <span className="text-[11px] font-medium text-neutral-400">
           Max 5 MB (JPG, PNG, WebP)
         </span>
       </div>
@@ -227,25 +227,25 @@ export function PhotoUpload({
 
       {/* Active Preview State */}
       {previewUrl ? (
-        <div className="relative rounded-2xl border-2 border-emerald-800/20 bg-emerald-50/30 p-3 sm:p-4 flex flex-col sm:flex-row items-center gap-4 transition-all">
-          <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-300 shadow-sm flex-shrink-0">
+        <div className="relative rounded-2xl border border-amber-500/30 bg-[#080b0f] p-3 sm:p-4 flex flex-col sm:flex-row items-center gap-4 transition-all">
+          <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-neutral-900 border border-amber-500/40 shadow-md flex-shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewUrl}
               alt="Player photo preview"
               className="w-full h-full object-cover"
             />
-            <div className="absolute bottom-1 right-1 bg-emerald-700 text-white rounded-full p-0.5 shadow">
+            <div className="absolute bottom-1 right-1 bg-amber-500 text-slate-950 rounded-full p-0.5 shadow-md">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
 
           <div className="flex-1 text-center sm:text-left min-w-0 w-full space-y-2">
             <div className="space-y-0.5">
-              <p className="text-sm font-bold text-neutral-800 truncate">
+              <p className="text-sm font-bold text-white truncate">
                 {value?.name || "Player Photo Selected"}
               </p>
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-neutral-400">
                 {value ? `${(value.size / (1024 * 1024)).toFixed(2)} MB` : ""}
               </p>
             </div>
@@ -254,16 +254,16 @@ export function PhotoUpload({
               <button
                 type="button"
                 onClick={handleTriggerUpload}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400 transition-colors shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#121820] border border-amber-500/30 text-amber-300 hover:bg-[#1a232f] hover:border-amber-400 transition-colors shadow-xs cursor-pointer"
               >
-                <RefreshCw className="w-3.5 h-3.5 text-emerald-800" />
+                <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
                 <span>Replace</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleRemove}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 transition-colors shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-950/40 border border-rose-800/40 text-rose-300 hover:bg-rose-900/40 transition-colors shadow-xs cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Remove</span>
@@ -288,42 +288,42 @@ export function PhotoUpload({
           onDrop={handleDrop}
           className={`group relative rounded-2xl border-2 border-dashed p-6 sm:p-7 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 ${
             isDragging
-              ? "border-emerald-600 bg-emerald-50 scale-[1.01]"
+              ? "border-amber-400 bg-amber-500/10 scale-[1.01]"
               : displayError
-              ? "border-rose-300 bg-rose-50/30 hover:border-rose-400"
-              : "border-neutral-300 bg-white hover:border-emerald-700/60 hover:bg-emerald-50/20"
+              ? "border-rose-500/60 bg-rose-950/20 hover:border-rose-400"
+              : "border-neutral-700/80 bg-[#080b0f] hover:border-amber-500/60 hover:bg-amber-500/[0.02]"
           }`}
         >
           {/* Sports Icon Container */}
-          <div className="w-14 h-14 rounded-2xl bg-emerald-100/70 text-emerald-900 border border-emerald-200/60 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:bg-emerald-200/80 transition-all">
-            <Camera className="w-7 h-7 text-[#0a2e1b]" />
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-yellow-500/10 text-amber-400 border border-amber-500/30 flex items-center justify-center mb-3 group-hover:scale-105 group-hover:border-amber-400 transition-all shadow-inner">
+            <Camera className="w-7 h-7 text-amber-400" />
           </div>
 
           <div className="space-y-1">
-            <p className="text-sm font-bold text-neutral-800">
-              <span className="text-[#0a2e1b] underline underline-offset-2">
+            <p className="text-sm font-bold text-white">
+              <span className="text-amber-400 underline underline-offset-2">
                 Click to upload
               </span>{" "}
               or drag & drop
             </p>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-neutral-400">
               Clear passport-style or action portrait photo
             </p>
           </div>
 
           <div className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-neutral-400">
-            <UploadCloud className="w-3.5 h-3.5" />
+            <UploadCloud className="w-3.5 h-3.5 text-amber-400/70" />
             <span>JPEG, PNG, WebP up to 5 MB</span>
           </div>
 
           {/* Quick Demo Photo Trigger */}
-          <div className="mt-3 pt-3 border-t border-neutral-100 w-full flex justify-center">
+          <div className="mt-3 pt-3 border-t border-neutral-800 w-full flex justify-center">
             <button
               type="button"
               onClick={handleUseDemoPhoto}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 text-[11px] font-semibold text-emerald-800 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[11px] font-semibold text-amber-300 transition-colors cursor-pointer"
             >
-              <Sparkles className="w-3 h-3 text-emerald-600" />
+              <Sparkles className="w-3 h-3 text-amber-400" />
               <span>Use Demo Photo for Quick Test</span>
             </button>
           </div>
@@ -334,7 +334,7 @@ export function PhotoUpload({
       {displayError && (
         <p
           id="photo-error"
-          className="text-xs font-semibold text-rose-600 flex items-center gap-1.5 mt-1"
+          className="text-xs font-semibold text-rose-400 flex items-center gap-1.5 mt-1"
           role="alert"
         >
           <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />

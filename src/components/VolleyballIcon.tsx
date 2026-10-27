@@ -117,8 +117,8 @@ export function VolleyballGraphic({
       className={`relative inline-flex items-center justify-center ${className}`}
       style={{ width: size, height: size }}
     >
-      {/* Subtle outer glow / halo */}
-      <div className="absolute inset-0 rounded-full bg-emerald-400/15 blur-xl pointer-events-none" />
+      {/* Subtle outer gold tournament halo */}
+      <div className="absolute inset-0 rounded-full bg-amber-500/20 blur-xl pointer-events-none" />
 
       {/* Volleyball Vector */}
       <svg
@@ -127,80 +127,80 @@ export function VolleyballGraphic({
         viewBox="0 0 120 120"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="relative drop-shadow-lg"
+        className="relative drop-shadow-xl"
       >
         <circle
           cx="60"
           cy="60"
           r="54"
-          fill="#ffffff"
-          stroke="#092817"
-          strokeWidth="6"
+          fill="#0c1015"
+          stroke="#d97706"
+          strokeWidth="5"
         />
 
-        {/* Panel group A */}
+        {/* Panel group A (Top) - Brushed Gold highlight */}
         <path
           d="M 60 6 C 75 22 75 38 60 60 C 45 38 45 22 60 6 Z"
-          fill="#eaf6ee"
-          stroke="#092817"
-          strokeWidth="4.5"
+          fill="#fef08a"
+          stroke="#78350f"
+          strokeWidth="3.5"
         />
         <path
           d="M 60 6 C 88 18 95 38 60 60"
-          stroke="#092817"
-          strokeWidth="4"
+          stroke="#eab308"
+          strokeWidth="3.5"
         />
         <path
           d="M 60 6 C 32 18 25 38 60 60"
-          stroke="#092817"
-          strokeWidth="4"
+          stroke="#eab308"
+          strokeWidth="3.5"
         />
 
-        {/* Panel group B (bottom right) */}
+        {/* Panel group B (Bottom Right) - Championship Amber */}
         <path
           d="M 106.8 87 C 88 80 72 72 60 60 C 78 50 94 52 106.8 87 Z"
-          fill="#dcfce7"
-          stroke="#092817"
-          strokeWidth="4.5"
+          fill="#f59e0b"
+          stroke="#78350f"
+          strokeWidth="3.5"
         />
         <path
           d="M 112 50 C 95 62 82 58 60 60"
-          stroke="#092817"
-          strokeWidth="4"
+          stroke="#ca8a04"
+          strokeWidth="3.5"
         />
         <path
           d="M 87 106.8 C 76 86 70 72 60 60"
-          stroke="#092817"
-          strokeWidth="4"
+          stroke="#ca8a04"
+          strokeWidth="3.5"
         />
 
-        {/* Panel group C (bottom left) */}
+        {/* Panel group C (Bottom Left) - Deep Metallic Gold */}
         <path
           d="M 13.2 87 C 32 80 48 72 60 60 C 42 50 26 52 13.2 87 Z"
-          fill="#f0fdf4"
-          stroke="#092817"
-          strokeWidth="4.5"
+          fill="#d97706"
+          stroke="#78350f"
+          strokeWidth="3.5"
         />
         <path
           d="M 8 50 C 25 62 38 58 60 60"
-          stroke="#092817"
-          strokeWidth="4"
+          stroke="#b45309"
+          strokeWidth="3.5"
         />
         <path
           d="M 33 106.8 C 44 86 50 72 60 60"
-          stroke="#092817"
-          strokeWidth="4"
+          stroke="#b45309"
+          strokeWidth="3.5"
         />
 
-        {/* Outer Rim Highlight */}
+        {/* Outer Rim Gold Highlight */}
         <circle
           cx="60"
           cy="60"
           r="54"
-          stroke="#0f4228"
-          strokeWidth="5"
-          strokeDasharray="2 6"
-          opacity="0.3"
+          stroke="#ffd700"
+          strokeWidth="3"
+          strokeDasharray="4 8"
+          opacity="0.6"
         />
       </svg>
     </div>

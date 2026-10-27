@@ -77,22 +77,22 @@ export function AdminSidebar({
   };
 
   const sidebarContent = (
-    <div className="flex flex-col h-full bg-[#072416] text-white select-none">
+    <div className="flex flex-col h-full bg-[#070a0e] text-slate-100 select-none border-r border-amber-500/20">
       {/* Brand Header */}
-      <div className="p-5 border-b border-emerald-900/60 flex items-center justify-between">
+      <div className="p-5 border-b border-amber-500/20 flex items-center justify-between">
         <Link
           href="/admin/dashboard"
           className="flex items-center gap-3 group"
           onClick={onClose}
         >
-          <div className="w-10 h-10 rounded-xl bg-emerald-900/90 border border-emerald-500/40 flex items-center justify-center text-emerald-300 shadow-inner group-hover:scale-105 transition-transform">
-            <VolleyballIcon size={22} strokeColor="#a7f3d0" accentColor="#062113" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-yellow-500/10 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-inner group-hover:scale-105 transition-transform">
+            <VolleyballIcon size={22} strokeColor="#f59e0b" accentColor="#1a1408" />
           </div>
           <div className="flex flex-col">
-            <span className="text-xs font-black tracking-widest text-emerald-300 uppercase">
+            <span className="text-[11px] font-black tracking-widest text-amber-400 uppercase">
               VFN Admin Portal
             </span>
-            <span className="text-sm font-extrabold text-white leading-tight uppercase">
+            <span className="text-sm font-black text-white leading-tight uppercase tracking-tight">
               Nalthur 2026
             </span>
           </div>
@@ -102,7 +102,7 @@ export function AdminSidebar({
           <button
             type="button"
             onClick={onClose}
-            className="md:hidden p-2 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-900/50 transition-colors"
+            className="md:hidden p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-white/[0.05] transition-colors"
             aria-label="Close sidebar"
           >
             <X className="w-5 h-5" />
@@ -112,7 +112,7 @@ export function AdminSidebar({
 
       {/* Navigation Links */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-emerald-400/60">
+        <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-amber-400/60">
           Navigation
         </div>
         {navLinks.map((item) => {
@@ -124,35 +124,35 @@ export function AdminSidebar({
               onClick={onClose}
               className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-wide transition-all ${
                 item.active
-                  ? "bg-emerald-800 text-white shadow-md border border-emerald-600/40"
-                  : "text-emerald-100/70 hover:text-white hover:bg-emerald-900/40"
+                  ? "bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent text-amber-300 shadow-sm border-l-4 border-amber-400"
+                  : "text-neutral-400 hover:text-white hover:bg-white/[0.04]"
               }`}
             >
               <div className="flex items-center gap-3">
                 <Icon
                   className={`w-4 h-4 ${
-                    item.active ? "text-emerald-300" : "text-emerald-400/70"
+                    item.active ? "text-amber-400" : "text-neutral-500"
                   }`}
                 />
                 <span>{item.name}</span>
               </div>
-              {item.active && <ChevronRight className="w-4 h-4 text-emerald-300" />}
+              {item.active && <ChevronRight className="w-4 h-4 text-amber-400" />}
             </Link>
           );
         })}
       </nav>
 
       {/* Admin User Profile & Logout */}
-      <div className="p-4 border-t border-emerald-900/60 bg-emerald-950/40 space-y-3">
+      <div className="p-4 border-t border-amber-500/20 bg-[#0a0d12] space-y-3">
         <div className="flex items-center gap-3 px-1">
-          <div className="w-9 h-9 rounded-full bg-emerald-800/80 border border-emerald-600/50 flex items-center justify-center text-emerald-200">
+          <div className="w-9 h-9 rounded-full bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-300">
             <Shield className="w-4 h-4" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-white truncate">
               {adminUser?.full_name || "Committee Admin"}
             </p>
-            <p className="text-[11px] text-emerald-300/60 truncate font-mono">
+            <p className="text-[11px] text-amber-400/70 truncate font-mono">
               {adminUser?.username ? `@${adminUser.username}` : (adminUser?.email || "admin")}
             </p>
           </div>
@@ -161,7 +161,7 @@ export function AdminSidebar({
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-rose-300 bg-rose-950/40 hover:bg-rose-900/50 border border-rose-900/50 transition-colors cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-rose-300 bg-rose-950/40 hover:bg-rose-900/50 border border-rose-800/40 transition-colors cursor-pointer"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>Logout</span>
@@ -173,7 +173,7 @@ export function AdminSidebar({
   return (
     <>
       {/* Desktop Persistent Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col fixed inset-y-0 left-0 z-30 border-r border-emerald-900/50">
+      <aside className="hidden md:flex w-64 flex-col fixed inset-y-0 left-0 z-30 border-r border-amber-500/20">
         {sidebarContent}
       </aside>
 

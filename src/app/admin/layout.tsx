@@ -59,9 +59,9 @@ export default function AdminLayout({
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#072416] text-white">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-300 mb-3" />
-        <p className="text-xs uppercase font-mono tracking-widest text-emerald-300/80">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#070a0e] text-white">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-400 mb-3" />
+        <p className="text-xs uppercase font-mono tracking-widest text-amber-400/80">
           Verifying Admin Credentials...
         </p>
       </div>
@@ -77,7 +77,7 @@ export default function AdminLayout({
   else if (pathname.includes("/admin/settings")) pageTitle = "Settings";
 
   return (
-    <div className="min-h-screen bg-[#f4f7f4] text-neutral-900 flex">
+    <div className="min-h-screen bg-[#070a0e] text-slate-100 flex">
       {/* Sidebar (Desktop persistent + Mobile drawer) */}
       <AdminSidebar
         adminUser={adminUser}

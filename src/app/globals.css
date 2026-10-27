@@ -2,19 +2,29 @@
 
 @theme {
   --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --color-forest-950: #051a0f;
-  --color-forest-900: #0a2e1b;
-  --color-forest-800: #0f4228;
-  --color-forest-700: #145936;
-  --color-forest-600: #1b7447;
-  --color-forest-500: #248f58;
-  --color-forest-100: #dcfce7;
-  --color-forest-50: #f2f9f5;
+  --color-gold-50: #fefce8;
+  --color-gold-100: #fef9c3;
+  --color-gold-200: #fef08a;
+  --color-gold-300: #fde047;
+  --color-gold-400: #facc15;
+  --color-gold-500: #eab308;
+  --color-gold-600: #ca8a04;
+  --color-gold-700: #a16207;
+  --color-gold-800: #854d0e;
+  --color-gold-900: #713f12;
+  --color-gold-950: #422006;
+
+  --color-obsidian-950: #05070a;
+  --color-obsidian-900: #070a0e;
+  --color-obsidian-850: #0b0f14;
+  --color-obsidian-800: #0f141b;
+  --color-obsidian-750: #141a23;
+  --color-obsidian-700: #1a222e;
 }
 
 :root {
-  --background: #f6f9f6;
-  --foreground: #111827;
+  --background: #070a0e;
+  --foreground: #f8fafc;
 }
 
 body {
@@ -25,9 +35,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom focus ring styling for accessible keyboard navigation */
+/* Custom gold focus ring styling for accessible keyboard navigation */
 *:focus-visible {
-  outline: 2px solid #0a2e1b;
+  outline: 2px solid #eab308;
   outline-offset: 2px;
 }
 
@@ -35,3 +45,21 @@ body {
 html, body {
   overflow-x: hidden;
 }
+
+/* Custom dark scrollbar with gold thumb */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #070a0e;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 9999px;
+  border: 2px solid #070a0e;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ca8a04;
+}
+

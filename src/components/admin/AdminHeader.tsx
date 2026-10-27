@@ -12,14 +12,14 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ title, onOpenMobileNav }: AdminHeaderProps) {
   return (
-    <header className="sticky top-0 z-20 w-full bg-white border-b border-neutral-200/90 shadow-2xs">
+    <header className="sticky top-0 z-20 w-full bg-[#0a0d12]/95 border-b border-amber-500/20 shadow-md backdrop-blur-md">
       <div className="flex items-center justify-between px-4 sm:px-6 py-3.5">
         <div className="flex items-center gap-3">
           {onOpenMobileNav && (
             <button
               type="button"
               onClick={onOpenMobileNav}
-              className="md:hidden p-2 -ml-2 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
+              className="md:hidden p-2 -ml-2 rounded-xl text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors"
               aria-label="Open mobile navigation menu"
             >
               <Menu className="w-5 h-5" />
@@ -27,11 +27,11 @@ export function AdminHeader({ title, onOpenMobileNav }: AdminHeaderProps) {
           )}
 
           <div className="flex flex-col">
-            <h1 className="text-base sm:text-lg font-black text-neutral-900 uppercase tracking-tight leading-tight">
+            <h1 className="text-base sm:text-lg font-black text-white uppercase tracking-tight leading-tight">
               {title}
             </h1>
-            <span className="text-[11px] font-semibold text-emerald-800 flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3 text-emerald-600" />
+            <span className="text-[11px] font-bold text-amber-400 flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
               <span>Admin Management Portal</span>
             </span>
           </div>
@@ -42,11 +42,11 @@ export function AdminHeader({ title, onOpenMobileNav }: AdminHeaderProps) {
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-neutral-300 hover:border-emerald-800 text-xs font-bold text-neutral-700 hover:text-emerald-900 hover:bg-emerald-50/40 transition-colors shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-500/30 hover:border-amber-400/60 text-xs font-bold text-amber-300 hover:text-amber-200 bg-[#0f141b] hover:bg-amber-500/10 transition-colors shadow-xs"
           >
-            <VolleyballIcon size={14} strokeColor="#0a2e1b" />
+            <VolleyballIcon size={14} strokeColor="#f59e0b" />
             <span className="hidden sm:inline">Public Registration</span>
-            <ExternalLink className="w-3 h-3 text-neutral-400" />
+            <ExternalLink className="w-3 h-3 text-amber-400/60" />
           </Link>
         </div>
       </div>

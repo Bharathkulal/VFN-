@@ -111,31 +111,31 @@ export function RegistrationForm() {
         <div className="space-y-6 sm:space-y-8">
           {/* Hero Section */}
           <section className="text-center space-y-3">
-            {/* Subtle Volleyball Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-[#0a2e1b] border border-emerald-300 text-xs font-bold uppercase tracking-wider shadow-xs">
-              <VolleyballIcon size={16} strokeColor="#0a2e1b" />
+            {/* Gold Volleyball Tournament Badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-bold uppercase tracking-wider shadow-sm">
+              <VolleyballIcon size={16} strokeColor="#f59e0b" />
               <span>Volleyball Friends Nalthur Trophy 2026</span>
             </div>
 
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-neutral-900 tracking-tight">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight">
               Ready to Play?
             </h2>
 
-            <p className="text-sm sm:text-base text-neutral-600 max-w-md mx-auto leading-relaxed">
+            <p className="text-sm sm:text-base text-neutral-300 max-w-md mx-auto leading-relaxed">
               Register now and be part of Volleyball Friends Nalthur. Complete your details below.
             </p>
           </section>
 
           {/* Registration Form Card */}
-          <div className="bg-white rounded-3xl border border-neutral-200/90 shadow-md shadow-emerald-950/5 p-5 sm:p-8">
+          <div className="bg-[#0d1217] rounded-3xl border border-amber-500/25 shadow-2xl shadow-black/80 p-5 sm:p-8 backdrop-blur-md">
             <form
               onSubmit={handleSubmit(onSubmit)}
               noValidate
               className="space-y-6"
             >
               {formError && (
-                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4 flex-shrink-0 text-rose-600" />
+                <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/50 text-rose-300 text-xs font-semibold flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 flex-shrink-0 text-rose-400" />
                   <span>{formError}</span>
                 </div>
               )}
@@ -204,35 +204,35 @@ export function RegistrationForm() {
                 error={errors.phone?.message}
                 hint="10-digit Indian mobile number"
                 prefixElement={
-                  <span className="text-neutral-600 text-xs sm:text-sm font-semibold select-none">
+                  <span className="text-amber-400 text-xs sm:text-sm font-bold select-none">
                     +91
                   </span>
                 }
               />
 
-              {/* Submit Button */}
+              {/* Submit Button (Championship Gold) */}
               <div className="pt-2">
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full min-h-[52px] rounded-xl bg-[#0a2e1b] hover:bg-[#072416] active:scale-[0.99] text-white text-sm sm:text-base font-extrabold tracking-wider uppercase transition-all duration-150 shadow-md hover:shadow-lg disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 focus:outline-none focus:ring-2 focus:ring-[#0a2e1b] focus:ring-offset-2 cursor-pointer"
+                  className="w-full min-h-[52px] rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:from-amber-400 hover:to-yellow-300 active:scale-[0.99] text-slate-950 text-sm sm:text-base font-black tracking-wider uppercase transition-all duration-150 shadow-lg shadow-amber-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 focus:outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin text-slate-950" />
                       <span>Saving Registration...</span>
                     </>
                   ) : (
                     <>
                       <span>Register Player</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-4 h-4 text-slate-950" />
                     </>
                   )}
                 </button>
               </div>
 
               {/* Tournament Privacy / Policy note */}
-              <p className="text-center text-[11px] text-neutral-400">
+              <p className="text-center text-[11px] text-neutral-500">
                 Official tournament registration for Volleyball Friends Nalthur Trophy 2026.
               </p>
             </form>
