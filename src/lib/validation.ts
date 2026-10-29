@@ -2,11 +2,10 @@ import { z } from "zod";
 
 export const PLAYING_ROLES = [
   "Setter",
-  "Spiker",
+  "Attacker",
   "Middle Blocker",
   "Libero",
   "All-rounder",
-  "Other",
 ] as const;
 
 export type PlayingRole = (typeof PLAYING_ROLES)[number];

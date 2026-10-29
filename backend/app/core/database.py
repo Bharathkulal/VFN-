@@ -22,7 +22,7 @@ async def connect_to_mongo():
     logger.info(f"Connecting to MongoDB at {settings.MONGODB_URL} (db: {settings.DATABASE_NAME})...")
     db_instance.client = AsyncIOMotorClient(
         settings.MONGODB_URL,
-        serverSelectionTimeoutMS=5000,
+        serverSelectionTimeoutMS=20000,
     )
     db_instance.db = db_instance.client[settings.DATABASE_NAME]
 

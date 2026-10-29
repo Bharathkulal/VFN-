@@ -63,7 +63,12 @@ async def get_dashboard_statistics(
     async for item in cursor:
         role_name = item.get("_id")
         if role_name:
-            role_counts[role_name] = item.get("count", 0)
+            if role_name.strip().lower() == "spiker":
+                role_counts["Attacker"] = role_counts.get("Attacker", 0) + item.get("count", 0)
+            elif role_name in role_counts:
+                role_counts[role_name] += item.get("count", 0)
+            else:
+                role_counts[role_name] = item.get("count", 0)
 
     # 6. Poster status counts
     posters_generated = await players_col.count_documents({"poster_status": "generated"})

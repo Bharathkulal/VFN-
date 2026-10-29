@@ -131,7 +131,7 @@ def test_player_registration_success(client: TestClient, sync_mongo: MongoClient
     assert body["formatted_serial"] == "01"
     assert body["player_name"] == "Rohan Shetty"
     assert body["village"] == "Nalthur"
-    assert body["playing_role"] == "Spiker"
+    assert body["playing_role"] == "Attacker"
     assert body["phone_number"] == "9876543210"
     assert body["poster_status"] in ["pending", "generated"]
 
@@ -244,7 +244,7 @@ def test_player_delete_authorized(client: TestClient, admin_token: str, sync_mon
     data = {
         "player_name": "Temporary Player",
         "village": "Nalthur",
-        "playing_role": "Other",
+        "playing_role": "Attacker",
         "phone_number": "9812345678",
     }
     reg_res = client.post("/api/v1/players/register", data=data, files=files)

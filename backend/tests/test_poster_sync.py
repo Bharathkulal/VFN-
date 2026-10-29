@@ -81,6 +81,7 @@ def test_registration_automatic_poster_upload(client: TestClient, sync_mongo: Mo
         assert res.status_code == 201
         body = res.json()
         assert body["player_name"] == "Test Player Auto"
+        assert body["playing_role"] == "Attacker"
         assert body["poster_status"] == "generated"
         assert body["poster_url"] == mock_poster_url
 

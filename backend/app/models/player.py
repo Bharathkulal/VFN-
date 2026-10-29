@@ -7,11 +7,22 @@ import re
 
 class PlayingRoleEnum(str, Enum):
     SETTER = "Setter"
-    SPIKER = "Spiker"
+    ATTACKER = "Attacker"
+    SPIKER = "Attacker"  # Backward compatibility alias
     MIDDLE_BLOCKER = "Middle Blocker"
     LIBERO = "Libero"
     ALL_ROUNDER = "All-rounder"
-    OTHER = "Other"
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            clean = value.strip().lower()
+            if clean == "spiker":
+                return cls.ATTACKER
+            for m in cls:
+                if m.value.lower() == clean:
+                    return m
+        return super()._missing_(value)
 
 
 class PosterStatusEnum(str, Enum):

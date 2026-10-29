@@ -69,7 +69,7 @@ export default function RegisteredPlayersPage() {
   const [editSerial, setEditSerial] = useState<number | "">("");
   const [editName, setEditName] = useState("");
   const [editVillage, setEditVillage] = useState("");
-  const [editRole, setEditRole] = useState<PlayingRole>("Spiker");
+  const [editRole, setEditRole] = useState<PlayingRole>("Attacker");
   const [editPhone, setEditPhone] = useState("");
   const [editPosterStatus, setEditPosterStatus] = useState<string>("pending");
   const [editSubmitting, setEditSubmitting] = useState(false);
@@ -119,7 +119,7 @@ export default function RegisteredPlayersPage() {
     setEditSerial(player.serial_number);
     setEditName(player.player_name);
     setEditVillage(player.village);
-    setEditRole(player.playing_role as PlayingRole);
+    setEditRole((player.playing_role === "Spiker" ? "Attacker" : player.playing_role) as PlayingRole);
     setEditPhone(player.phone_number);
     setEditPosterStatus(player.poster_status);
   };

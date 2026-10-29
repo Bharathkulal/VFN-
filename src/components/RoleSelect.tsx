@@ -51,7 +51,7 @@ export const RoleSelect = forwardRef<HTMLSelectElement, RoleSelectProps>(
             {...props}
           >
             <option value="" disabled className="bg-[#0b0e14] text-neutral-400">
-              Select your role (e.g., Spiker, Setter)
+              Select your role (e.g., Attacker, Setter)
             </option>
             {PLAYING_ROLES.map((role) => (
               <option key={role} value={role} className="bg-[#0b0e14] text-white py-1.5">

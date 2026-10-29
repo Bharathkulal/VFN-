@@ -50,13 +50,16 @@ router = APIRouter(prefix="/players", tags=["Players"])
 def serialize_player(doc: dict) -> PlayerResponse:
     """Helper to convert MongoDB player document to PlayerResponse schema."""
     serial = doc["serial_number"]
+    role = doc.get("playing_role", "All-rounder")
+    if role and str(role).strip().lower() == "spiker":
+        role = "Attacker"
     return PlayerResponse(
         id=str(doc["_id"]),
         serial_number=serial,
         formatted_serial=format_serial_number(serial),
         player_name=doc["player_name"],
         village=doc["village"],
-        playing_role=doc["playing_role"],
+        playing_role=role,
         phone_number=doc["phone_number"],
         photo_url=doc["photo_url"],
         photo_public_id=doc.get("photo_public_id"),
@@ -233,7 +236,11 @@ async def list_players(
         filter_query["village"] = {"$regex": f"^{re.escape(village.strip())}$", "$options": "i"}
 
     if role and role.strip():
-        filter_query["playing_role"] = role.strip()
+        r = role.strip()
+        if r.lower() in ("attacker", "spiker"):
+            filter_query["playing_role"] = {"$in": ["Attacker", "Spiker"]}
+        else:
+            filter_query["playing_role"] = r
 
     if poster_status and poster_status.strip():
         filter_query["poster_status"] = poster_status.strip().lower()

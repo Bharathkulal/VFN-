@@ -182,7 +182,10 @@ def generate_player_poster(
     formatted_serial = player_doc.get("formatted_serial", f"{serial_num:02d}")
     player_name = (player_doc.get("player_name") or "VOLLEYBALL PLAYER").strip().upper()
     village = (player_doc.get("village") or "NALTHUR").strip().upper()
-    playing_role = (player_doc.get("playing_role") or "ALL-ROUNDER").strip().upper()
+    raw_role = (player_doc.get("playing_role") or "ALL-ROUNDER").strip()
+    if raw_role.upper() == "SPIKER":
+        raw_role = "Attacker"
+    playing_role = raw_role.upper()
     phone = (player_doc.get("phone_number") or "").strip()
 
     # Output file paths
