@@ -545,49 +545,40 @@ def generate_players_powerpoint(
         # ── 9. Metadata Section (editable PowerPoint text boxes) ────────────
         meta_x = 580 * _SX       # ≈ 7.552"
         meta_w = 4.2
-        label_h = 0.28
-        value_h = 0.55
+        label_h = 0.25
+        value_h = 0.58
 
-        # Row 1: SERIAL NUMBER
-        row1_label_y = 186 * _SY  # ≈ 2.482"
-        row1_value_y = 202 * _SY  # ≈ 2.696"
+        # Row 1: SERIAL NUMBER (clean vertical stacking, no label/value overlap)
+        row1_label_y = 2.45
+        row1_value_y = 2.72
         _add_text(slide, meta_x, row1_label_y, meta_w, label_h,
                   "SERIAL NUMBER", 13, _WHITE, True, PP_ALIGN.LEFT, "Arial", "Label Serial Number")
         _add_text(slide, meta_x, row1_value_y, meta_w, value_h,
-                  f"#{fmt_serial}", 46, _GOLD, True, PP_ALIGN.LEFT, "Impact", "Serial Number Value")
-
-        # Divider 1
-        _add_rect(slide, meta_x, 254 * _SY, 3.5, 0.025, _GOLD, name="Divider 1")
+                  f"#{fmt_serial}", 44, _GOLD, True, PP_ALIGN.LEFT, "Impact", "Serial Number Value")
 
         # Row 2: VILLAGE
-        row2_label_y = 258 * _SY  # ≈ 3.443"
-        row2_value_y = 274 * _SY  # ≈ 3.657"
+        row2_label_y = 3.44
+        row2_value_y = 3.71
         _add_text(slide, meta_x, row2_label_y, meta_w, label_h,
                   "VILLAGE", 13, _WHITE, True, PP_ALIGN.LEFT, "Arial", "Label Village")
         _add_text(slide, meta_x, row2_value_y, meta_w, value_h,
-                  village, 34, _GOLD, True, PP_ALIGN.LEFT, "Impact", "Village Value")
-
-        # Divider 2
-        _add_rect(slide, meta_x, 328 * _SY, 3.5, 0.025, _GOLD, name="Divider 2")
+                  village, 32, _GOLD, True, PP_ALIGN.LEFT, "Impact", "Village Value")
 
         # Row 3: ROLE
-        row3_label_y = 330 * _SY  # ≈ 4.404"
-        row3_value_y = 346 * _SY  # ≈ 4.617"
+        row3_label_y = 4.42
+        row3_value_y = 4.70
         _add_text(slide, meta_x, row3_label_y, meta_w, label_h,
                   "ROLE", 13, _WHITE, True, PP_ALIGN.LEFT, "Arial", "Label Role")
         _add_text(slide, meta_x, row3_value_y, meta_w, value_h,
-                  role, 34, _GOLD, True, PP_ALIGN.LEFT, "Impact", "Role Value")
-
-        # Divider 3
-        _add_rect(slide, meta_x, 405 * _SY, 3.5, 0.025, _GOLD, name="Divider 3")
+                  role, 32, _GOLD, True, PP_ALIGN.LEFT, "Impact", "Role Value")
 
         # Row 4: PHONE
-        row4_label_y = 404 * _SY  # ≈ 5.391"
-        row4_value_y = 420 * _SY  # ≈ 5.605"
+        row4_label_y = 5.44
+        row4_value_y = 5.72
         _add_text(slide, meta_x, row4_label_y, meta_w, label_h,
                   "PHONE", 13, _WHITE, True, PP_ALIGN.LEFT, "Arial", "Label Phone")
         _add_text(slide, meta_x, row4_value_y, meta_w, value_h,
-                  phone_display, 32, _GOLD, True, PP_ALIGN.LEFT, "Impact", "Phone Value")
+                  phone_display, 30, _GOLD, True, PP_ALIGN.LEFT, "Impact", "Phone Value")
 
         # ── 10. Spiker badge (independent replaceable image) ────────────────
         if spiker_badge_bytes:
