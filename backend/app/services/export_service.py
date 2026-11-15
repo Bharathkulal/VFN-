@@ -544,7 +544,7 @@ def generate_players_powerpoint(
 
         # ── 9. Metadata Section (editable PowerPoint text boxes) ────────────
         meta_x = 580 * _SX       # ≈ 7.552"
-        meta_w = 4.2
+        meta_w = 2.4             # Bound width tightly so text never overlaps right panel logo
         label_h = 0.25
         value_h = 0.58
 
@@ -599,10 +599,10 @@ def generate_players_powerpoint(
         # ── 11. Karna Creation logo (independent replaceable image) ─────────
         if karna_logo_bytes:
             try:
-                logo_w = 1.8
-                logo_h = 1.2
-                logo_left = SLIDE_W - logo_w - 0.3
-                logo_top = SLIDE_H - logo_h - 0.2
+                logo_w = 167 * _SX      # ≈ 2.174" (~32% reduced from original, preserving aspect ratio)
+                logo_h = 187 * _SY      # ≈ 2.495"
+                logo_left = 790 * _SX   # ≈ 10.286" (centered neatly in right panel)
+                logo_top = 202 * _SY    # ≈ 2.696"
                 logo_pic = slide.shapes.add_picture(
                     io.BytesIO(karna_logo_bytes),
                     Inches(logo_left), Inches(logo_top),
