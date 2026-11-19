@@ -95,7 +95,7 @@ export default function AuctionPostersPage() {
             Official Auction Posters Gallery
           </h1>
           <p className="text-xs sm:text-sm text-neutral-300 max-w-xl">
-            High-resolution player auction cards generated with tournament gold branding, portrait zoom, and Karna Creation identity. Persisted on Cloudinary CDN.
+            High-resolution player auction cards generated with tournament gold branding, portrait zoom, and official VFN identity. Persisted on Cloudinary CDN.
           </p>
         </div>
 

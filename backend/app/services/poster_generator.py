@@ -172,7 +172,7 @@ def generate_player_poster(
 ) -> Tuple[str, str]:
     """
     Generates a high-resolution tournament auction poster matching the exact
-    Volleyball Friends Nalthur Trophy 2026 design with Karna Creation branding.
+    Volleyball Friends Nalthur Trophy 2026 design with official VFN tournament branding.
 
     Preserves 100% of the player's photo without unwanted cropping or stretching.
     Returns: (relative_url, absolute_file_path)
@@ -276,7 +276,7 @@ def generate_player_poster(
     white_lbl_color = (245, 245, 245)
 
     def draw_val(x: int, y: int, text: str, initial_size: int = 34, max_width: int = 180):
-        """Draws a large value with dynamic sizing to prevent overlapping the Karna logo."""
+        """Draws a large value with dynamic sizing to prevent overlapping the tournament logo."""
         size = initial_size
         f = get_font("impact.ttf", size)
         b = draw.textbbox((0, 0), text, font=f)

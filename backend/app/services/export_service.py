@@ -351,7 +351,7 @@ def generate_players_powerpoint(
 
     Every element on each slide is a native PowerPoint object:
     - Text boxes: Player Name, Serial Number (#01...), Village, Role, Phone Number, Tournament Title
-    - Replaceable Images: Player Photo, Spiker Badge, Karna Creation Logo
+    - Replaceable Images: Player Photo, Spiker Badge, VFN Tournament Logo
     - Shapes: Gold border frame, photo frame border, metadata divider lines
 
     This enables administrators to select, double-click to edit, reposition, or
@@ -596,10 +596,10 @@ def generate_players_powerpoint(
             except Exception as e:
                 logger.warning(f"Could not add spiker badge to slide #{fmt_serial}: {e}")
 
-        # ── 11. Karna Creation logo (independent replaceable image) ─────────
+        # ── 11. VFN Tournament logo (independent replaceable image) ─────────
         if karna_logo_bytes:
             try:
-                logo_w = 167 * _SX      # ≈ 2.174" (~32% reduced from original, preserving aspect ratio)
+                logo_w = 167 * _SX      # ≈ 2.174" (proportional, preserving aspect ratio)
                 logo_h = 187 * _SY      # ≈ 2.495"
                 logo_left = 790 * _SX   # ≈ 10.286" (centered neatly in right panel)
                 logo_top = 202 * _SY    # ≈ 2.696"
@@ -608,9 +608,9 @@ def generate_players_powerpoint(
                     Inches(logo_left), Inches(logo_top),
                     width=Inches(logo_w), height=Inches(logo_h),
                 )
-                logo_pic.name = "Karna Creation Logo"
+                logo_pic.name = "VFN Tournament Logo"
             except Exception as e:
-                logger.warning(f"Could not add Karna logo to slide #{fmt_serial}: {e}")
+                logger.warning(f"Could not add VFN logo to slide #{fmt_serial}: {e}")
 
     out = io.BytesIO()
     prs.save(out)
